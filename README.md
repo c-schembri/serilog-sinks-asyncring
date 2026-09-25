@@ -328,10 +328,11 @@ dotnet build
 dotnet test
 ```
 
-The tests include Serilog.Sinks.Async's own test suite, run unchanged against this implementation. They also
-check that the public API is identical to Serilog.Sinks.Async 2.1.0's, and stress the ring buffer: many threads,
-tiny buffers, constant wrap-around, and disposal while logging. CI runs them on Linux, Windows and macOS, on
-.NET 6, 8 and 10 (and .NET Framework 4.8 on Windows), and each run's package is attached to it as an artifact.
+The tests use [TUnit](https://tunit.dev) and include Serilog.Sinks.Async's own test suite, ported to TUnit and
+run against this implementation. They also check that the public API is identical to Serilog.Sinks.Async 2.1.0's,
+and stress the ring buffer: many threads, tiny buffers, constant wrap-around, and disposal while logging. CI runs
+them on Linux, Windows and macOS, on .NET 6, 8 and 10 (and .NET Framework 4.8 on Windows), and each run's package
+is attached to it as an artifact.
 
 The benchmarks use [BenchmarkDotNet](https://benchmarkdotnet.org) and compare this package with Serilog.Sinks.Async
 2.1.0 and with logging straight to the sink (no queue):

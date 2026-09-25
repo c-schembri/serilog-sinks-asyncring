@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using Xunit;
+using System.Threading.Tasks;
 
 namespace Serilog.Sinks.Async.Tests;
 
@@ -16,27 +16,30 @@ public class ApiParityTests
     private static readonly Assembly Upstream = typeof(upstream::Serilog.LoggerConfigurationAsyncExtensions).Assembly;
     private static readonly Assembly Ours = typeof(LoggerConfigurationAsyncExtensions).Assembly;
 
-    [Fact]
-    public void PublicApiIsIdenticalToSerilogSinksAsync()
+    [Test]
+    public async Task PublicApiIsIdenticalToSerilogSinksAsync()
     {
-        Assert.Equal(Describe(Upstream), Describe(Ours));
+        var upstream = Describe(Upstream);
+        var ours = Describe(Ours);
+
+        await Assert.That(upstream.Except(ours)).IsEmpty().Because("these members of Serilog.Sinks.Async's API are missing");
+        await Assert.That(ours.Except(upstream)).IsEmpty().Because("these members aren't in Serilog.Sinks.Async's API");
     }
 
-    [Fact]
-    public void ClsComplianceMatchesSerilogSinksAsync()
+    [Test]
+    public async Task ClsComplianceMatchesSerilogSinksAsync()
     {
-        Assert.Equal(
-            Upstream.GetCustomAttribute<CLSCompliantAttribute>()?.IsCompliant,
-            Ours.GetCustomAttribute<CLSCompliantAttribute>()?.IsCompliant);
+        await Assert.That(Ours.GetCustomAttribute<CLSCompliantAttribute>()?.IsCompliant)
+            .IsEqualTo(Upstream.GetCustomAttribute<CLSCompliantAttribute>()?.IsCompliant);
     }
 
-    static string[] Describe(Assembly assembly) =>
+    private static string[] Describe(Assembly assembly) =>
         assembly.GetExportedTypes()
             .SelectMany(DescribeType)
             .OrderBy(line => line, StringComparer.Ordinal)
             .ToArray();
 
-    static IEnumerable<string> DescribeType(Type type)
+    private static IEnumerable<string> DescribeType(Type type)
     {
         yield return $"{Kind(type)} {type.FullName}";
 
@@ -48,13 +51,13 @@ public class ApiParityTests
             yield return $"{type.FullName}::{DescribeMember(member)}";
     }
 
-    static string Kind(Type type) =>
+    private static string Kind(Type type) =>
         type.IsInterface ? "interface" :
         type.IsValueType ? "struct" :
         type.IsAbstract && type.IsSealed ? "static class" :
         type.IsSealed ? "sealed class" : "class";
 
-    static string DescribeMember(MemberInfo member) => member switch
+    private static string DescribeMember(MemberInfo member) => member switch
     {
         MethodInfo method =>
             $"{(method.IsStatic ? "static " : "")}{method.ReturnType.FullName} {method.Name}" +
@@ -67,7 +70,7 @@ public class ApiParityTests
         _ => $"{member.MemberType} {member.Name}"
     };
 
-    static string DescribeParameter(ParameterInfo parameter) =>
+    private static string DescribeParameter(ParameterInfo parameter) =>
         $"{parameter.ParameterType.FullName} {parameter.Name}" +
         (parameter.IsOptional ? $" = {parameter.DefaultValue ?? "null"}" : "");
 }

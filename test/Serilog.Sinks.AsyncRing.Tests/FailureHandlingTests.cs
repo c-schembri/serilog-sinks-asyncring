@@ -1,6 +1,3 @@
-// These tests block on tasks with a timeout on purpose, so a hang fails the test instead of stalling the run.
-#pragma warning disable xUnit1031
-
 using System;
 using System.IO;
 using System.Threading;
@@ -8,7 +5,6 @@ using System.Threading.Tasks;
 using Serilog.Core;
 using Serilog.Debugging;
 using Serilog.Sinks.Async.Tests.Support;
-using Xunit;
 
 namespace Serilog.Sinks.Async.Tests;
 
@@ -17,8 +13,8 @@ public class FailureHandlingTests
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
 
-    [Fact]
-    public void ThrowingFailureListenerDoesNotStopTheWorker()
+    [Test]
+    public async Task ThrowingFailureListenerDoesNotStopTheWorker()
     {
         var inner = new FlakySink(failFirst: 1);
         using (var sink = new BackgroundWorkerSink(inner, 100, false, null))
@@ -27,11 +23,11 @@ public class FailureHandlingTests
             for (var i = 0; i < 20; i++) sink.Emit(Some.Event());
         }
 
-        Assert.Equal(19, inner.Delivered);
+        await Assert.That(inner.Delivered).IsEqualTo(19);
     }
 
-    [Fact]
-    public void FallbackChainWithThrowingFallbackKeepsDeliveringToPrimary()
+    [Test]
+    public async Task FallbackChainWithThrowingFallbackKeepsDeliveringToPrimary()
     {
         var primary = new FlakySink(failFirst: 1);
         using (var log = new LoggerConfiguration()
@@ -43,11 +39,11 @@ public class FailureHandlingTests
             for (var i = 0; i < 20; i++) log.Information("Event {N}", i);
         }
 
-        Assert.Equal(19, primary.Delivered);
+        await Assert.That(primary.Delivered).IsEqualTo(19);
     }
 
-    [Fact]
-    public void WrappedSinkIsDisposedExactlyOnce()
+    [Test]
+    public async Task WrappedSinkIsDisposedExactlyOnce()
     {
         var inner = new DisposeCountingSink();
         var log = new LoggerConfiguration().WriteTo.Async(a => a.Sink(inner)).CreateLogger();
@@ -55,12 +51,12 @@ public class FailureHandlingTests
 
         log.Dispose();
 
-        Assert.Equal(1, inner.Disposes);
-        Assert.Equal(0, inner.AsyncDisposes);
+        await Assert.That(inner.Disposes).IsEqualTo(1);
+        await Assert.That(inner.AsyncDisposes).IsEqualTo(0);
     }
 
 #if NET6_0_OR_GREATER
-    [Fact]
+    [Test]
     public async Task WrappedSinkIsDisposedExactlyOnceAsynchronously()
     {
         var inner = new DisposeCountingSink();
@@ -69,13 +65,13 @@ public class FailureHandlingTests
 
         await log.DisposeAsync();
 
-        Assert.Equal(0, inner.Disposes);
-        Assert.Equal(1, inner.AsyncDisposes);
+        await Assert.That(inner.Disposes).IsEqualTo(0);
+        await Assert.That(inner.AsyncDisposes).IsEqualTo(1);
     }
 #endif
 
-    [Fact]
-    public void DisposingTwiceDisposesTheWrappedSinkOnce()
+    [Test]
+    public async Task DisposingTwiceDisposesTheWrappedSinkOnce()
     {
         var inner = new DisposeCountingSink();
         var monitor = new DummyMonitor();
@@ -84,12 +80,12 @@ public class FailureHandlingTests
         sink.Dispose();
         sink.Dispose();
 
-        Assert.Equal(1, inner.Disposes);
-        Assert.Null(monitor.Inspector);
+        await Assert.That(inner.Disposes).IsEqualTo(1);
+        await Assert.That(monitor.Inspector).IsNull();
     }
 
-    [Fact]
-    public void FailureListenerIsForwardedToTheWrappedSink()
+    [Test]
+    public async Task FailureListenerIsForwardedToTheWrappedSink()
     {
         var inner = new FailureListenerRecordingSink();
         var listener = new RecordingFailureListener();
@@ -98,12 +94,12 @@ public class FailureHandlingTests
                    .WriteTo.Fallible(wt => wt.Async(a => a.Sink(inner)), listener)
                    .CreateLogger())
         {
-            Assert.Same(listener, inner.Listener);
+            await Assert.That(inner.Listener).IsSameReferenceAs(listener);
         }
     }
 
-    [Fact]
-    public void EmitAfterDisposeIsReportedAsFinal()
+    [Test]
+    public async Task EmitAfterDisposeIsReportedAsFinal()
     {
         var listener = new RecordingFailureListener();
         var sink = new BackgroundWorkerSink(new MemorySink(), 10, false, null);
@@ -112,13 +108,13 @@ public class FailureHandlingTests
 
         sink.Emit(Some.Event());
 
-        var failure = Assert.Single(listener.Failures);
-        Assert.Equal(LoggingFailureKind.Final, failure.Kind);
-        Assert.Equal(1, failure.Events);
+        var failure = await Assert.That(listener.Failures).HasSingleItem();
+        await Assert.That(failure.Kind).IsEqualTo(LoggingFailureKind.Final);
+        await Assert.That(failure.Events).IsEqualTo(1);
     }
 
-    [Fact]
-    public void DisposeReleasesProducersBlockedOnAFullBuffer()
+    [Test]
+    public async Task DisposeReleasesProducersBlockedOnAFullBuffer()
     {
         using var gate = new ManualResetEventSlim(false);
         var inner = new GatedSink(gate);
@@ -127,22 +123,24 @@ public class FailureHandlingTests
         sink.SetFailureListener(listener);
 
         sink.Emit(Some.Event());                     // taken by the worker, which then waits at the gate
-        Assert.True(inner.WaitUntilEntered(Timeout));
+        await Assert.That(inner.WaitUntilEntered(Timeout)).IsTrue();
         sink.Emit(Some.Event());                     // fills the one-event buffer
         var blocked = Task.Run(() => sink.Emit(Some.Event()));
-        Assert.False(blocked.Wait(TimeSpan.FromMilliseconds(200)), "The producer should be blocked.");
+        await Assert.That(await CompletesWithin(blocked, TimeSpan.FromMilliseconds(200))).IsFalse()
+            .Because("the producer should be blocked");
 
         var disposing = Task.Run(sink.Dispose);
-        Assert.True(blocked.Wait(Timeout), "Dispose should release the blocked producer.");
-        Assert.Contains(listener.Failures, f => f.Kind == LoggingFailureKind.Final);
+        await Assert.That(await CompletesWithin(blocked, Timeout)).IsTrue()
+            .Because("Dispose should release the blocked producer");
+        await Assert.That(listener.Failures).Contains(f => f.Kind == LoggingFailureKind.Final);
 
         gate.Set();
-        Assert.True(disposing.Wait(Timeout));
-        Assert.Equal(2, inner.Count);
+        await Assert.That(await CompletesWithin(disposing, Timeout)).IsTrue();
+        await Assert.That(inner.Count).IsEqualTo(2);
     }
 
-    [Fact]
-    public void WrappedSinkLoggingBackIntoAFullBlockingBufferDoesNotDeadlock()
+    [Test]
+    public async Task WrappedSinkLoggingBackIntoAFullBlockingBufferDoesNotDeadlock()
     {
         BackgroundWorkerSink sink = null;
         var reentrant = new ReentrantSink(() => sink);
@@ -154,11 +152,15 @@ public class FailureHandlingTests
             sink.Dispose();
         });
 
-        Assert.True(logging.Wait(Timeout), "Logging from the worker thread deadlocked.");
+        await Assert.That(await CompletesWithin(logging, Timeout)).IsTrue()
+            .Because("logging from the worker thread must not deadlock");
     }
 
+    private static async Task<bool> CompletesWithin(Task task, TimeSpan timeout) =>
+        await Task.WhenAny(task, Task.Delay(timeout)) == task;
+
     // Logs an extra event through the async sink for each event it receives (but not for those extras).
-    class ReentrantSink(Func<BackgroundWorkerSink> sink) : ILogEventSink
+    private class ReentrantSink(Func<BackgroundWorkerSink> sink) : ILogEventSink
     {
         public void Emit(Events.LogEvent logEvent)
         {
@@ -169,15 +171,12 @@ public class FailureHandlingTests
     }
 }
 
-[CollectionDefinition(nameof(SelfLogTests), DisableParallelization = true)]
-public class SelfLogCollection;
-
-// Changes the global SelfLog, so it doesn't run in parallel with other tests.
-[Collection(nameof(SelfLogTests))]
+// Changes the global SelfLog, so it runs on its own.
+[NotInParallel]
 public class SelfLogTests
 {
-    [Fact]
-    public void ThrowingSelfLogDoesNotHangBlockingProducers()
+    [Test]
+    public async Task ThrowingSelfLogDoesNotHangBlockingProducers()
     {
         SelfLog.Enable(_ => throw new IOException("Self-log output is unavailable."));
         try
@@ -191,10 +190,11 @@ public class SelfLogTests
             {
                 for (var i = 0; i < 20; i++) log.Information("Event {N}", i);
             });
-            Assert.True(logging.Wait(TimeSpan.FromSeconds(10)), "Logging threads hung.");
+            await Assert.That(await Task.WhenAny(logging, Task.Delay(TimeSpan.FromSeconds(10))) == logging).IsTrue()
+                .Because("logging threads must not hang");
 
             log.Dispose();
-            Assert.Equal(19, inner.Delivered);
+            await Assert.That(inner.Delivered).IsEqualTo(19);
         }
         finally
         {

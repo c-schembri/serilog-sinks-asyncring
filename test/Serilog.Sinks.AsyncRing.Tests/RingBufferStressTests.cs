@@ -1,26 +1,26 @@
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Serilog.Core;
 using Serilog.Sinks.Async.Tests.Support;
-using Xunit;
 
 namespace Serilog.Sinks.Async.Tests;
 
 // Many threads logging into small buffers, so the ring wraps around constantly and the full,
 // lapped and closing paths all get exercised. Every event must be delivered exactly once, in its
-// thread's order, or accounted for as dropped or rejected. They load every core, so they run on their own
-// rather than alongside the timing-sensitive tests.
-[Collection(nameof(RingBufferStressTests))]
+// thread's order, or accounted for as dropped or rejected. They load every core, so each one runs on its
+// own rather than alongside the timing-sensitive tests.
+[NotInParallel]
 public class RingBufferStressTests
 {
     private const int Threads = 16;
     private const int EventsPerThread = 20_000;
     private const long Total = (long)Threads * EventsPerThread;
 
-    [Theory]
-    [InlineData(64, 1024)] // normal slack
-    [InlineData(8, 0)]     // no slack: producers routinely lap the worker and must wait for their slot
-    public void WhenDroppingEveryEventIsDeliveredInOrderOrCountedAsDropped(int capacity, int slack)
+    [Test]
+    [Arguments(64, 1024)] // normal slack
+    [Arguments(8, 0)]     // no slack: producers routinely lap the worker and must wait for their slot
+    public async Task WhenDroppingEveryEventIsDeliveredInOrderOrCountedAsDropped(int capacity, int slack)
     {
         var inner = new OrderCheckingSink(Threads, spinPerEvent: 20);
         var listener = new RecordingFailureListener();
@@ -31,17 +31,17 @@ public class RingBufferStressTests
         sink.Dispose();
 
         var dropped = ((IAsyncLogEventSinkInspector)sink).DroppedMessagesCount;
-        Assert.True(dropped > 0, "The test should overload the buffer.");
-        Assert.Equal(Total, inner.Delivered + dropped);
-        Assert.Equal(dropped, listener.EventCount);
-        Assert.All(listener.Failures, f => Assert.Equal(LoggingFailureKind.Permanent, f.Kind));
-        Assert.Equal(0, inner.OrderViolations);
+        await Assert.That(dropped).IsGreaterThan(0).Because("the test should overload the buffer");
+        await Assert.That(inner.Delivered + dropped).IsEqualTo(Total);
+        await Assert.That(listener.EventCount).IsEqualTo(dropped);
+        await Assert.That(listener.Failures).All(f => f.Kind == LoggingFailureKind.Permanent);
+        await Assert.That(inner.OrderViolations).IsEqualTo(0);
     }
 
-    [Theory]
-    [InlineData(16, 1024)]
-    [InlineData(8, 0)]
-    public void WhenBlockingEveryEventIsDeliveredInOrder(int capacity, int slack)
+    [Test]
+    [Arguments(16, 1024)]
+    [Arguments(8, 0)]
+    public async Task WhenBlockingEveryEventIsDeliveredInOrder(int capacity, int slack)
     {
         var inner = new OrderCheckingSink(Threads);
         var listener = new RecordingFailureListener();
@@ -51,16 +51,16 @@ public class RingBufferStressTests
         Produce(sink);
         sink.Dispose();
 
-        Assert.Equal(Total, inner.Delivered);
-        Assert.Equal(0, ((IAsyncLogEventSinkInspector)sink).DroppedMessagesCount);
-        Assert.Empty(listener.Failures);
-        Assert.Equal(0, inner.OrderViolations);
+        await Assert.That(inner.Delivered).IsEqualTo(Total);
+        await Assert.That(((IAsyncLogEventSinkInspector)sink).DroppedMessagesCount).IsEqualTo(0);
+        await Assert.That(listener.Failures).IsEmpty();
+        await Assert.That(inner.OrderViolations).IsEqualTo(0);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void DisposingWhileLoggingLosesNothingSilently(bool blockWhenFull)
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task DisposingWhileLoggingLosesNothingSilently(bool blockWhenFull)
     {
         var inner = new OrderCheckingSink(Threads);
         var listener = new RecordingFailureListener();
@@ -88,12 +88,12 @@ public class RingBufferStressTests
         Volatile.Write(ref stop, 1);
         foreach (var producer in producers) producer.Join();
 
-        Assert.Equal(attempts.Sum(), inner.Delivered + listener.EventCount);
-        Assert.Contains(listener.Failures, f => f.Kind == LoggingFailureKind.Final);
-        Assert.Equal(0, inner.OrderViolations);
+        await Assert.That(inner.Delivered + listener.EventCount).IsEqualTo(attempts.Sum());
+        await Assert.That(listener.Failures).Contains(f => f.Kind == LoggingFailureKind.Final);
+        await Assert.That(inner.OrderViolations).IsEqualTo(0);
     }
 
-    static void Produce(ILogEventSink sink)
+    private static void Produce(ILogEventSink sink)
     {
         var producers = Enumerable.Range(0, Threads).Select(t => new Thread(() =>
         {
@@ -104,6 +104,3 @@ public class RingBufferStressTests
         foreach (var producer in producers) producer.Join();
     }
 }
-
-[CollectionDefinition(nameof(RingBufferStressTests), DisableParallelization = true)]
-public class RingBufferStressCollection;

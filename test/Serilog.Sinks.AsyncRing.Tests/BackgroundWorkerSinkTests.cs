@@ -1,14 +1,15 @@
-﻿using System;
+using System;
+using System.Threading.Tasks;
 using Serilog.Events;
 using Serilog.Sinks.Async.Tests.Support;
-using Xunit;
 
 namespace Serilog.Sinks.Async.Tests;
 
+// Ported from Serilog.Sinks.Async's test suite.
 public class BackgroundWorkerSinkTests
 {
-    [Fact]
-    public void EventsArePassedToInnerSink()
+    [Test]
+    public async Task EventsArePassedToInnerSink()
     {
         var collector = new MemorySink();
 
@@ -20,11 +21,11 @@ public class BackgroundWorkerSinkTests
             log.Information("Hello again!");
         }
 
-        Assert.Equal(2, collector.Events.Count);
+        await Assert.That(collector.Events.Count).IsEqualTo(2);
     }
 
-    [Fact]
-    public void DisposeCompletesWithoutWorkPerformed()
+    [Test]
+    public async Task DisposeCompletesWithoutWorkPerformed()
     {
         var collector = new MemorySink();
 
@@ -34,11 +35,11 @@ public class BackgroundWorkerSinkTests
         {
         }
 
-        Assert.Empty(collector.Events);
+        await Assert.That(collector.Events).IsEmpty();
     }
 
-    [Fact]
-    public void CtorAndDisposeInformMonitor()
+    [Test]
+    public async Task CtorAndDisposeInformMonitor()
     {
         var collector = new MemorySink();
         var monitor = new DummyMonitor();
@@ -47,14 +48,14 @@ public class BackgroundWorkerSinkTests
                    .WriteTo.Async(w => w.Sink(collector), monitor: monitor)
                    .CreateLogger())
         {
-            Assert.NotNull(monitor.Inspector);
+            await Assert.That(monitor.Inspector).IsNotNull();
         }
 
-        Assert.Null(monitor.Inspector);
+        await Assert.That(monitor.Inspector).IsNull();
     }
 
-    [Fact]
-    public void SupportsLoggingFailureListener()
+    [Test]
+    public async Task SupportsLoggingFailureListener()
     {
         var failureListener = new CollectingFailureListener();
         var sink = new BackgroundWorkerSink(new NotImplementedSink(), 1, false, null);
@@ -62,9 +63,9 @@ public class BackgroundWorkerSinkTests
         var evt = new LogEvent(DateTimeOffset.Now, LogEventLevel.Information, null, MessageTemplate.Empty, []);
         sink.Emit(evt);
         sink.Dispose();
-        var collected = Assert.Single(failureListener.Events);
-        Assert.Same(evt, collected);
-        var exception = Assert.Single(failureListener.Exceptions);
-        Assert.IsType<NotImplementedException>(exception);
+        var collected = await Assert.That(failureListener.Events).HasSingleItem();
+        await Assert.That(collected).IsSameReferenceAs(evt);
+        var exception = await Assert.That(failureListener.Exceptions).HasSingleItem();
+        await Assert.That(exception).IsTypeOf<NotImplementedException>();
     }
 }

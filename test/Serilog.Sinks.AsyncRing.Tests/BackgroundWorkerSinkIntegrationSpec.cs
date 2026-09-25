@@ -1,21 +1,22 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Threading;
+using System.Linq;
+using System.Threading.Tasks;
+using Serilog.Core;
 using Serilog.Events;
 using Serilog.Sinks.Async.Tests.Support;
-using Serilog.Core;
-using Xunit;
-using System.Linq;
 
 namespace Serilog.Sinks.Async.Tests;
 
+// Ported from Serilog.Sinks.Async's test suite, with the waits made asynchronous so the tests don't tie
+// up thread-pool threads while TUnit runs them in parallel.
 public static class BackgroundWorkerSinkIntegrationSpec
 {
     /// <summary>
-    ///     If <see cref="withDelay" />, then adds a 1sec delay before every fifth element created
+    ///     If <paramref name="withDelay" />, then adds a 1sec delay before every fifth element created
     /// </summary>
-    static void CreateAudits(ILogger logger, int count, bool withDelay)
+    private static async Task CreateAudits(ILogger logger, int count, bool withDelay)
     {
         var delay = TimeSpan.FromMilliseconds(1000);
         var sw = new Stopwatch();
@@ -24,7 +25,7 @@ public static class BackgroundWorkerSinkIntegrationSpec
         try
         {
             var delayCount = 0;
-            Loop.For(counter =>
+            for (var counter = 0; counter < count; counter++)
             {
                 if (withDelay
                     && counter > 0
@@ -34,11 +35,11 @@ public static class BackgroundWorkerSinkIntegrationSpec
                     Debug.WriteLine("{0:h:mm:ss tt} Delay ({1}) after {2}th write, for {3:0.###}secs", DateTime.Now,
                         delayCount, counter,
                         delay.TotalSeconds);
-                    Thread.Sleep(delay);
+                    await Task.Delay(delay);
                 }
 
                 logger.Information("{$Counter}", counter);
-            }, count);
+            }
         }
         finally
         {
@@ -48,16 +49,20 @@ public static class BackgroundWorkerSinkIntegrationSpec
         }
     }
 
-    static List<LogEvent> RetrieveEvents(MemorySink sink, int count)
+    private static async Task<List<LogEvent>> RetrieveEvents(MemorySink sink, int count)
     {
         Debug.WriteLine("{0:h:mm:ss tt} Retrieving {1} events", DateTime.Now, count);
 
-        Loop.Retry(() => sink.Events, events => events != null && events.Count >= count, TimeSpan.FromSeconds(1),
-            TimeSpan.FromSeconds(30));
+        var timeout = Stopwatch.StartNew();
+        while (sink.Events.Count < count && timeout.Elapsed < TimeSpan.FromSeconds(30))
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+        }
 
         return sink.Events.ToList();
     }
 
+    [InheritsTests]
     public class GivenNoBufferQueueAndNoDelays : SinkSpecBase
     {
         public GivenNoBufferQueueAndNoDelays()
@@ -66,6 +71,7 @@ public static class BackgroundWorkerSinkIntegrationSpec
         }
     }
 
+    [InheritsTests]
     public class GivenBufferQueueAndNoDelays : SinkSpecBase
     {
         public GivenBufferQueueAndNoDelays()
@@ -74,6 +80,7 @@ public static class BackgroundWorkerSinkIntegrationSpec
         }
     }
 
+    [InheritsTests]
     public class GivenNoBufferQueueAndDelays : SinkSpecBase
     {
         public GivenNoBufferQueueAndDelays()
@@ -82,6 +89,7 @@ public static class BackgroundWorkerSinkIntegrationSpec
         }
     }
 
+    [InheritsTests]
     public class GivenBufferQueueAndDelays : SinkSpecBase
     {
         public GivenBufferQueueAndDelays()
@@ -92,9 +100,9 @@ public static class BackgroundWorkerSinkIntegrationSpec
 
     public abstract class SinkSpecBase : IDisposable
     {
-        readonly bool _delayCreation;
-        readonly Logger _logger;
-        readonly MemorySink _memorySink;
+        private readonly bool _delayCreation;
+        private readonly Logger _logger;
+        private readonly MemorySink _memorySink;
 
         protected SinkSpecBase(bool useBufferedQueue, bool delayCreation)
         {
@@ -124,44 +132,44 @@ public static class BackgroundWorkerSinkIntegrationSpec
             Debug.WriteLine("{0:h:mm:ss tt} Ended test", DateTime.Now);
         }
 
-        [Fact]
-        public void WhenAuditSingle_ThenQueued()
+        [Test]
+        public async Task WhenAuditSingle_ThenQueued()
         {
-            CreateAudits(_logger, 1, _delayCreation);
+            await CreateAudits(_logger, 1, _delayCreation);
 
-            var result = RetrieveEvents(_memorySink, 1);
+            var result = await RetrieveEvents(_memorySink, 1);
 
-            Assert.Single(result);
+            await Assert.That(result).HasSingleItem();
         }
 
-        [Fact]
-        public void WhenAuditTen_ThenQueued()
+        [Test]
+        public async Task WhenAuditTen_ThenQueued()
         {
-            CreateAudits(_logger, 10, _delayCreation);
+            await CreateAudits(_logger, 10, _delayCreation);
 
-            var result = RetrieveEvents(_memorySink, 10);
+            var result = await RetrieveEvents(_memorySink, 10);
 
-            Assert.Equal(10, result.Count);
+            await Assert.That(result.Count).IsEqualTo(10);
         }
 
-        [Fact]
-        public void WhenAuditHundred_ThenQueued()
+        [Test]
+        public async Task WhenAuditHundred_ThenQueued()
         {
-            CreateAudits(_logger, 100, _delayCreation);
+            await CreateAudits(_logger, 100, _delayCreation);
 
-            var result = RetrieveEvents(_memorySink, 100);
+            var result = await RetrieveEvents(_memorySink, 100);
 
-            Assert.Equal(100, result.Count);
+            await Assert.That(result.Count).IsEqualTo(100);
         }
 
-        [Fact]
-        public void WhenAuditFiveHundred_ThenQueued()
+        [Test]
+        public async Task WhenAuditFiveHundred_ThenQueued()
         {
-            CreateAudits(_logger, 500, _delayCreation);
+            await CreateAudits(_logger, 500, _delayCreation);
 
-            var result = RetrieveEvents(_memorySink, 500);
+            var result = await RetrieveEvents(_memorySink, 500);
 
-            Assert.Equal(500, result.Count);
+            await Assert.That(result.Count).IsEqualTo(500);
         }
     }
 }

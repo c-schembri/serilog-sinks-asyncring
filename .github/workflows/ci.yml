@@ -44,10 +44,11 @@ jobs:
 
       # .NET 6, 8 and 10 everywhere, plus .NET Framework 4.8 on Windows. One framework at a time: some of the
       # tests measure timings, which a runner with only a few cores can't keep while four test runs compete.
+      # --minimum-expected-tests guards against tests silently not being discovered.
       - name: Test
         run: >
-          dotnet test test/Serilog.Sinks.AsyncRing.Tests -c Release --no-build -p:TestTfmsInParallel=false
-          --logger GitHubActions --blame-hang-timeout 5m
+          dotnet test --project test/Serilog.Sinks.AsyncRing.Tests -c Release --no-build
+          --max-parallel-test-modules 1 --minimum-expected-tests 45 --timeout 20m --report-github
 
   package:
     name: Package
