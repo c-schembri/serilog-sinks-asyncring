@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <Description>Asynchronous sink wrapper for Serilog, built on a lock-free ring buffer. A drop-in replacement for Serilog.Sinks.Async with the same API.</Description>
-    <VersionPrefix>1.1.0</VersionPrefix>
+    <VersionPrefix>1.1.1</VersionPrefix>
     <!-- Serilog.Sinks.Async's target frameworks, plus the current LTS release. -->
     <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT'">net471;net462</TargetFrameworks>
     <TargetFrameworks>$(TargetFrameworks);net10.0;net8.0;net6.0;netstandard2.0</TargetFrameworks>

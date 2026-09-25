@@ -20,39 +20,39 @@ only counts events, so these measure the logging pipeline and the hand-off to th
 
 | Logging threads | Serilog.Sinks.Async | AsyncRing | No queue |
 |---|---|---|---|
-| 1 | 254 | 261 | 262 |
-| 4 | 1,784 | 298 | 249 |
-| 16 | 10,891 | 798 | 610 |
+| 1 | 339 | 277 | 197 |
+| 4 | 2,493 | 303 | 242 |
+| 16 | 11,807 | 797 | 582 |
 
-With one thread the results are noisy and the two sinks are about even. At 16 threads, 11% of
-Serilog.Sinks.Async's logging calls ran into a lock another thread was holding; for AsyncRing it was 0.03%.
+With one thread the results are noisy. At 16 threads, 12% of Serilog.Sinks.Async's logging calls ran into a lock
+another thread was holding; for AsyncRing it was 0.03%.
 
 **Throughput** (events per second reaching the wrapped sink):
 
 | Logging threads | Serilog.Sinks.Async | AsyncRing | No queue |
 |---|---|---|---|
-| 1 | 4.3 million | 5.8 million | 9.7 million |
-| 4 | 1.9 million | 15.2 million | 28.5 million |
-| 16 | 1.4 million | 20.1 million | 27.4 million |
+| 1 | 4.3 million | 5.8 million | 9.8 million |
+| 4 | 1.9 million | 14.9 million | 27.1 million |
+| 16 | 1.4 million | 19.8 million | 24.2 million |
 
 **Overload with the default 10,000-event buffer** (ns per call, and the share of events that weren't dropped):
 
 | Logging threads | Serilog.Sinks.Async | AsyncRing |
 |---|---|---|
-| 1 | 349 ns, 100% delivered | 248 ns, 100% delivered |
-| 4 | 976 ns, 57% delivered | 302 ns, 99.9% delivered |
-| 16 | 2,171 ns, 7.5% delivered | 755 ns, 100% delivered |
+| 1 | 309 ns, 100% delivered | 322 ns, 100% delivered |
+| 4 | 1,054 ns, 59% delivered | 316 ns, 99.9% delivered |
+| 16 | 2,152 ns, 7.4% delivered | 759 ns, 99.9% delivered |
 
 **Memory and allocations** (16 logging threads):
 
 | Benchmark | Sink | Memory in use (avg / peak) | Allocations/s | Allocated/s | Allocated/event |
 |---|---|---|---|---|---|
-| Cost of a logging call (2,000,000-event buffer) | Serilog.Sinks.Async | 311 MB / 611 MB | 8.7 million | 613 MB/s | 437 B |
-| | AsyncRing | 32.1 MB / 32.7 MB | 115 million | 7.96 GB/s | 427 B |
-| Throughput (2,000,000-event buffer) | Serilog.Sinks.Async | 312 MB / 605 MB | 8.3 million | 582 MB/s | 437 B |
-| | AsyncRing | 32.1 MB / 33.1 MB | 115 million | 7.98 GB/s | 427 B |
-| Overload (default 10,000-event buffer) | Serilog.Sinks.Async | 6.7 MB / 16.4 MB | 66.7 million | 3.65 GB/s | 531 B |
-| | AsyncRing | 345 KB / 827 KB | 122 million | 8.42 GB/s | 427 B |
+| Cost of a logging call (2,000,000-event buffer) | Serilog.Sinks.Async | 301 MB / 588 MB | 8.0 million | 565 MB/s | 437 B |
+| | AsyncRing | 32.1 MB / 34.5 MB | 115 million | 7.98 GB/s | 427 B |
+| Throughput (2,000,000-event buffer) | Serilog.Sinks.Async | 308 MB / 603 MB | 8.2 million | 578 MB/s | 437 B |
+| | AsyncRing | 32.1 MB / 34.6 MB | 114 million | 7.87 GB/s | 427 B |
+| Overload (default 10,000-event buffer) | Serilog.Sinks.Async | 6.9 MB / 15.5 MB | 67.0 million | 3.68 GB/s | 531 B |
+| | AsyncRing | 358 KB / 550 KB | 121 million | 8.38 GB/s | 427 B |
 
 - **Memory in use** is the managed heap after each garbage collection (what's still referenced, not garbage
   waiting to be collected), above what it was before the logger existed. AsyncRing allocates its buffer up front
@@ -69,12 +69,12 @@ Serilog.Sinks.Async's logging calls ran into a lock another thread was holding; 
 
 | Logging threads | Cost of a logging call | Throughput | Delivered under overload |
 |---|---|---|---|
-| 4 | 1,287 ns → 436 ns | 3.0 → 9.7 million/s | 80% → 90% |
-| 16 | 6,061 ns → 1,596 ns | 2.7 → 10.7 million/s | 47% → 94% |
+| 4 | 1,250 ns → 481 ns | 3.1 → 8.8 million/s | 80% → 81% |
+| 16 | 5,844 ns → 2,991 ns | 2.7 → 5.9 million/s | 48% → 73% |
 
-Each cell is Serilog.Sinks.Async → AsyncRing. With more logging threads than cores, the background thread's raised
-priority is what keeps it draining the buffer (see [How it works](#how-it-works)). .NET only applies thread
-priorities on Windows, so on Linux and macOS the gain on few cores is smaller (see the CI results below).
+Each cell is Serilog.Sinks.Async → AsyncRing. With more logging threads than cores, the operating system often
+pauses a logging thread between claiming a slot and filling it in, and the background thread has to wait for it,
+so AsyncRing's lead is smaller than with cores to spare.
 
 On .NET 8 the numbers are within about 10% of these, and the comparison between the two sinks is the same.
 
@@ -540,9 +540,6 @@ sink, in order.
 - **The event is published by writing the slot's sequence number,** which the worker checks before reading it.
 - **The worker sleeps when there's nothing to do.** Logging threads only pay for waking it when it's actually
   asleep.
-- **The background thread runs at above-normal priority.** It's the only thread that frees buffer space, so when
-  more threads are busy than there are cores, it gets the CPU when it has work instead of an equal share with
-  every logging thread. It sleeps when there's nothing to write. .NET only applies thread priorities on Windows.
 - **Heavily used counters sit on their own CPU cache lines,** and the worker reports its progress every few
   events rather than after each one, so threads don't keep invalidating each other's caches.
 
@@ -577,12 +574,6 @@ the buffer behaves and in failure handling.
   deadlocking the background thread.
 - **Every event is accounted for.** It's either written or reported to the failure listener, including events
   logged while the logger is being disposed.
-
-**Scheduling**
-
-- **The background thread runs at above-normal priority** (on Windows; .NET ignores thread priorities
-  elsewhere). Serilog.Sinks.Async's runs at normal priority. When the wrapped sink has work to do, writing log
-  events takes precedence over the application's own threads.
 
 **Unchanged**
 
