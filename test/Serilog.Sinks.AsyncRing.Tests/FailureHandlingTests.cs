@@ -12,7 +12,7 @@ namespace Serilog.Sinks.Async.Tests;
 // Regression tests for failure-path bugs found in Serilog.Sinks.Async 2.1.0.
 public class FailureHandlingTests
 {
-    static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
 
     [Fact]
     public void ThrowingFailureListenerDoesNotStopTheWorker()

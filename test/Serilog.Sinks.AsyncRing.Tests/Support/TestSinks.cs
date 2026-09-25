@@ -25,8 +25,8 @@ static class Some
 // Throws for the first `failFirst` events, then counts the rest.
 class FlakySink(int failFirst) : ILogEventSink
 {
-    int _seen;
-    int _delivered;
+    private int _seen;
+    private int _delivered;
 
     public int Delivered => Volatile.Read(ref _delivered);
 
@@ -49,8 +49,8 @@ class ThrowingFailureListener : ILoggingFailureListener
 // Records the kind and event count of every failure it's told about.
 class RecordingFailureListener : ILoggingFailureListener
 {
-    readonly object _sync = new();
-    readonly List<(LoggingFailureKind Kind, string Message, int Events)> _failures = [];
+    private readonly object _sync = new();
+    private readonly List<(LoggingFailureKind Kind, string Message, int Events)> _failures = [];
 
     public IReadOnlyList<(LoggingFailureKind Kind, string Message, int Events)> Failures
     {
@@ -107,8 +107,8 @@ class FailureListenerRecordingSink : ILogEventSink, ISetLoggingFailureListener
 // Blocks inside Emit until the gate is opened.
 class GatedSink(ManualResetEventSlim gate) : ILogEventSink
 {
-    readonly ManualResetEventSlim _entered = new(false);
-    int _count;
+    private readonly ManualResetEventSlim _entered = new(false);
+    private int _count;
 
     public int Count => Volatile.Read(ref _count);
 
@@ -126,7 +126,7 @@ class GatedSink(ManualResetEventSlim gate) : ILogEventSink
 // thread logged them, with no duplicates. Only the worker thread calls Emit, so no locking.
 class OrderCheckingSink(int threads, int spinPerEvent = 0) : ILogEventSink
 {
-    readonly long[] _last = Enumerable.Repeat(-1L, threads).ToArray();
+    private readonly long[] _last = Enumerable.Repeat(-1L, threads).ToArray();
 
     public long Delivered { get; private set; }
     public long OrderViolations { get; private set; }

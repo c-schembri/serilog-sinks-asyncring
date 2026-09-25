@@ -99,7 +99,7 @@ static void RunOnThreads(int threads, Action body)
 
 sealed class CountingSink : ILogEventSink
 {
-    long _count;
+    private long _count;
 
     public long Count => Interlocked.Read(ref _count);
 

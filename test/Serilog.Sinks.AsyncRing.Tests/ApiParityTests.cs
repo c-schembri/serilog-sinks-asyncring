@@ -13,8 +13,8 @@ namespace Serilog.Sinks.Async.Tests;
 // replace it without source changes.
 public class ApiParityTests
 {
-    static readonly Assembly Upstream = typeof(upstream::Serilog.LoggerConfigurationAsyncExtensions).Assembly;
-    static readonly Assembly Ours = typeof(LoggerConfigurationAsyncExtensions).Assembly;
+    private static readonly Assembly Upstream = typeof(upstream::Serilog.LoggerConfigurationAsyncExtensions).Assembly;
+    private static readonly Assembly Ours = typeof(LoggerConfigurationAsyncExtensions).Assembly;
 
     [Fact]
     public void PublicApiIsIdenticalToSerilogSinksAsync()

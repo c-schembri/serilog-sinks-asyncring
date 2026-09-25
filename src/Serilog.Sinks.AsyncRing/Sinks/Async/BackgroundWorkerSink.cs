@@ -48,46 +48,46 @@ sealed class BackgroundWorkerSink : ILogEventSink, IAsyncLogEventSinkInspector, 
 
     // Closing the sink sets this bit on _tail. Claims made before it are exactly the events the worker
     // still has to drain; claims made after it come back with the bit set and are rejected.
-    const long ClosedBit = 1L << 62;
+    private const long ClosedBit = 1L << 62;
 
     // Spare slots beyond the capacity, absorbing producers that overshoot it together.
-    const int DefaultSlack = 1024;
+    private const int DefaultSlack = 1024;
 
     // Largest ring allocated (2M slots, 32 MB on 64-bit); larger buffer sizes are capped to fit.
-    const int MaxRingSize = 1 << 21;
+    private const int MaxRingSize = 1 << 21;
 
     // The worker publishes its progress every few events rather than after each one, so producers
     // (which read it on every call) aren't constantly invalidating each other's cached copy.
-    const int MaxHeadPublishInterval = 256;
+    private const int MaxHeadPublishInterval = 256;
 
     // How many times a waiting thread re-checks before it starts yielding the processor.
-    const int SpinIterations = 64;
+    private const int SpinIterations = 64;
 
-    const string DisposedMessage = "the sink has been disposed";
+    private const string DisposedMessage = "the sink has been disposed";
 
-    readonly ILogEventSink _wrappedSink;
-    readonly int _capacity;
-    readonly bool _blockWhenFull;
-    readonly IAsyncLogEventSinkMonitor? _monitor;
-    readonly Slot[] _slots;
-    readonly long _mask;
-    readonly int _headPublishInterval;
-    readonly string _droppedMessage;
-    readonly Thread _worker;
-    readonly ManualResetEventSlim _workAvailable = new(false);
-    readonly TaskCompletionSource<bool> _workerExited = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    readonly object _spaceAvailable = new();
+    private readonly ILogEventSink _wrappedSink;
+    private readonly int _capacity;
+    private readonly bool _blockWhenFull;
+    private readonly IAsyncLogEventSinkMonitor? _monitor;
+    private readonly Slot[] _slots;
+    private readonly long _mask;
+    private readonly int _headPublishInterval;
+    private readonly string _droppedMessage;
+    private readonly Thread _worker;
+    private readonly ManualResetEventSlim _workAvailable = new(false);
+    private readonly TaskCompletionSource<bool> _workerExited = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly object _spaceAvailable = new();
 
-    PaddedLong _tail;         // next position to claim; incremented by producers
-    PaddedLong _head;         // next position the worker will take, as last published by the worker
-    PaddedInt _workerWaiting; // 1 while the worker is going to sleep or asleep
-    long _finalTail = -1;     // the value of _tail when the sink was closed
-    int _blockedProducers;
-    long _droppedMessages;
-    int _disposed;
+    private PaddedLong _tail;         // next position to claim; incremented by producers
+    private PaddedLong _head;         // next position the worker will take, as last published by the worker
+    private PaddedInt _workerWaiting; // 1 while the worker is going to sleep or asleep
+    private long _finalTail = -1;     // the value of _tail when the sink was closed
+    private int _blockedProducers;
+    private long _droppedMessages;
+    private int _disposed;
 
     // By contract, set only during initialization, so updates are not synchronized.
-    ILoggingFailureListener _failureListener = SelfLog.FailureListener;
+    private ILoggingFailureListener _failureListener = SelfLog.FailureListener;
 
     public BackgroundWorkerSink(ILogEventSink wrappedSink, int bufferCapacity, bool blockWhenFull, IAsyncLogEventSinkMonitor? monitor)
         : this(wrappedSink, bufferCapacity, blockWhenFull, monitor, DefaultSlack)

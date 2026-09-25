@@ -11,9 +11,9 @@ namespace Serilog.Sinks.Async.Tests;
 // thread's order, or accounted for as dropped or rejected.
 public class RingBufferStressTests
 {
-    const int Threads = 16;
-    const int EventsPerThread = 20_000;
-    const long Total = (long)Threads * EventsPerThread;
+    private const int Threads = 16;
+    private const int EventsPerThread = 20_000;
+    private const long Total = (long)Threads * EventsPerThread;
 
     [Theory]
     [InlineData(64, 1024)] // normal slack
