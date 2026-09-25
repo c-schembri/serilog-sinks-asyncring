@@ -3,9 +3,9 @@
   <PropertyGroup>
     <Description>Asynchronous sink wrapper for Serilog, built on a lock-free ring buffer. A drop-in replacement for Serilog.Sinks.Async with the same API.</Description>
     <VersionPrefix>1.0.0</VersionPrefix>
-    <!-- Same target frameworks as Serilog.Sinks.Async and Serilog 4. -->
+    <!-- Serilog.Sinks.Async's target frameworks, plus the current LTS release. -->
     <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT'">net471;net462</TargetFrameworks>
-    <TargetFrameworks>$(TargetFrameworks);net8.0;net6.0;netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>$(TargetFrameworks);net10.0;net8.0;net6.0;netstandard2.0</TargetFrameworks>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <RootNamespace>Serilog</RootNamespace>
@@ -23,8 +23,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <!-- Serilog only looks for IAsyncDisposable on these targets, so the sink implements it on the same ones. -->
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'net6.0' or '$(TargetFramework)' == 'net8.0' ">
+  <!-- Serilog only looks for IAsyncDisposable on .NET 6 and later, so the sink implements it there. -->
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net6.0' or '$(TargetFramework)' == 'net8.0' or '$(TargetFramework)' == 'net10.0' ">
     <DefineConstants>$(DefineConstants);FEATURE_ASYNCDISPOSABLE</DefineConstants>
   </PropertyGroup>
 

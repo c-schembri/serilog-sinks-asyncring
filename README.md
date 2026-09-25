@@ -8,40 +8,43 @@ it much faster when many threads log at once.
 ## Performance
 
 Measured with the [BenchmarkDotNet](https://benchmarkdotnet.org) suite in `test/Serilog.Sinks.AsyncRing.Benchmarks`,
-on a Ryzen 9 9900X (12 cores, 24 threads), Windows 11, .NET 8. Threads log as fast as they can into a sink that
+on a Ryzen 9 9900X (12 cores, 24 threads), Windows 11, .NET 10. Threads log as fast as they can into a sink that
 only counts events, so these measure the logging pipeline and the hand-off to the background thread.
 
 **Cost of a logging call** (ns per call, as seen by each logging thread; nothing dropped):
 
 | Logging threads | Serilog.Sinks.Async | AsyncRing | No queue |
 |---|---|---|---|
-| 1 | 218 | 194 | 193 |
-| 4 | 1,815 | 497 | 203 |
-| 16 | 10,729 | 794 | 567 |
+| 1 | 233 | 246 | 189 |
+| 4 | 1,783 | 257 | 169 |
+| 16 | 11,489 | 762 | 530 |
 
-At 16 threads, 14% of Serilog.Sinks.Async's logging calls ran into a lock another thread was holding; for
-AsyncRing it was 0.03%.
+With one thread the results are noisy (AsyncRing's median was 207 ns), and the two sinks are about even. At 16
+threads, 14% of Serilog.Sinks.Async's logging calls ran into a lock another thread was holding; for AsyncRing it
+was 0.03%.
 
 **Throughput** (events per second reaching the wrapped sink):
 
 | Logging threads | Serilog.Sinks.Async | AsyncRing | No queue |
 |---|---|---|---|
-| 1 | 4.2 million | 5.3 million | 8.4 million |
-| 4 | 2.2 million | 14.0 million | 27.3 million |
-| 16 | 1.2 million | 19.1 million | 27.8 million |
+| 1 | 3.9 million | 6.0 million | 10.2 million |
+| 4 | 2.2 million | 16.5 million | 32.1 million |
+| 16 | 1.3 million | 20.3 million | 31.5 million |
 
 **Overload with the default 10,000-event buffer** (ns per call, and the share of events that weren't dropped):
 
 | Logging threads | Serilog.Sinks.Async | AsyncRing |
 |---|---|---|
-| 1 | 327 ns, 100% delivered | 236 ns, 100% delivered |
-| 4 | 931 ns, 61% delivered | 345 ns, 100% delivered |
-| 16 | 2,151 ns, 7.5% delivered | 737 ns, 100% delivered |
+| 1 | 225 ns, 100% delivered | 180 ns, 100% delivered |
+| 4 | 865 ns, 50% delivered | 282 ns, 99.9% delivered |
+| 16 | 2,056 ns, 7.4% delivered | 732 ns, 99.9% delivered |
+
+On .NET 8 the numbers are within about 10% of these, and the comparison between the two sinks is the same.
 
 These are extremes. A real sink (a file, the console) is much slower than a sink that only counts, so under
 sustained overload any async wrapper eventually fills its buffer and then drops or blocks. The numbers show how
 little each logging call costs, and how much better the background thread keeps up when many threads log at
-once. The single-thread figures vary by about ±50 ns from run to run.
+once.
 
 ## Getting started
 
@@ -192,9 +195,11 @@ The benchmarks use [BenchmarkDotNet](https://benchmarkdotnet.org) and compare th
 2.1.0 and with logging straight to the sink (no queue):
 
 ```sh
-dotnet run -c Release --project test/Serilog.Sinks.AsyncRing.Benchmarks -- --filter '*'          # everything
-dotnet run -c Release --project test/Serilog.Sinks.AsyncRing.Benchmarks -- --filter '*LogCall*'  # one class
+dotnet run -c Release -f net10.0 --project test/Serilog.Sinks.AsyncRing.Benchmarks -- --filter '*'          # everything
+dotnet run -c Release -f net10.0 --project test/Serilog.Sinks.AsyncRing.Benchmarks -- --filter '*LogCall*'  # one class
 ```
+
+Every benchmark runs on both .NET 8 and .NET 10 (`-f` only picks the runtime that hosts BenchmarkDotNet itself).
 
 - **`LogCallBenchmarks`:** what a logging call costs the thread making it, while 1, 4 or 16 threads log at once.
   The buffer is big enough that nothing is dropped.

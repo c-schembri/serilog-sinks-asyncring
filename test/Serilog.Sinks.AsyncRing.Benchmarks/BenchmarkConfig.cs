@@ -1,5 +1,6 @@
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Environments;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
@@ -13,10 +14,14 @@ public sealed class BenchmarkConfig : ManualConfig
         // Each invocation logs a whole batch from several threads, and the queue is drained between
         // iterations, so every iteration is a single invocation. BenchmarkDotNet decides how many warm-up
         // iterations are needed (enough for the JIT to finish optimizing Serilog's code).
-        AddJob(Job.Default
+        var job = Job.Default
             .WithInvocationCount(1)
             .WithUnrollFactor(1)
-            .WithIterationCount(15));
+            .WithIterationCount(15);
+
+        // Every benchmark runs on both LTS runtimes; Ratio compares the sinks within each one.
+        AddJob(job.WithRuntime(CoreRuntime.Core80));
+        AddJob(job.WithRuntime(CoreRuntime.Core10_0));
 
         AddColumn(new DeliveredColumn());
     }
@@ -44,8 +49,9 @@ public sealed class DeliveredColumn : IColumn
     public string GetValue(Summary summary, BenchmarkCase benchmarkCase, SummaryStyle style)
     {
         var threads = (int)benchmarkCase.Parameters[nameof(LoggingBenchmark.Threads)]!;
+        var runtime = benchmarkCase.Job.Environment.Runtime?.MsBuildMoniker ?? DeliveryStats.CurrentRuntime;
         var percentage = DeliveryStats.LoadPercentage(
-            benchmarkCase.Descriptor.Type.Name, benchmarkCase.Descriptor.WorkloadMethod.Name, threads);
+            runtime, benchmarkCase.Descriptor.Type.Name, benchmarkCase.Descriptor.WorkloadMethod.Name, threads);
         return percentage is { } value ? $"{value:0.#}%" : "?";
     }
 

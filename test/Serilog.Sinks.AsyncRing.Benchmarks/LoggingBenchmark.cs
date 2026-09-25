@@ -59,7 +59,7 @@ public abstract class LoggingBenchmark
     {
         _logger?.Dispose(); // flushes anything still queued
         _threads?.Dispose();
-        DeliveryStats.Save(BenchmarkClassName(), _sinkName, Threads, _logged, _sink.Count);
+        DeliveryStats.Save(DeliveryStats.CurrentRuntime, BenchmarkClassName(), _sinkName, Threads, _logged, _sink.Count);
     }
 
     // BenchmarkDotNet runs a generated subclass of the benchmark class; the stats are keyed by the real one.

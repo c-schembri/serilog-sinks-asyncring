@@ -102,24 +102,28 @@ public static class DeliveryStats
 {
     public const string DirectoryVariable = "ASYNCRING_BENCHMARK_STATS";
 
-    public static void Save(string benchmark, string sink, int threads, long logged, long delivered)
+    /// <summary>The runtime this process is running on, in the same form as a target framework (<c>net8.0</c>).</summary>
+    public static string CurrentRuntime => $"net{Environment.Version.Major}.{Environment.Version.Minor}";
+
+    public static void Save(string runtime, string benchmark, string sink, int threads, long logged, long delivered)
     {
         var directory = Environment.GetEnvironmentVariable(DirectoryVariable);
         if (string.IsNullOrEmpty(directory) || logged == 0) return;
-        File.WriteAllText(Path.Combine(directory, FileName(benchmark, sink, threads)), $"{logged} {delivered}");
+        File.WriteAllText(Path.Combine(directory, FileName(runtime, benchmark, sink, threads)), $"{logged} {delivered}");
     }
 
-    public static double? LoadPercentage(string benchmark, string sink, int threads)
+    public static double? LoadPercentage(string runtime, string benchmark, string sink, int threads)
     {
         var directory = Environment.GetEnvironmentVariable(DirectoryVariable);
         if (string.IsNullOrEmpty(directory)) return null;
 
-        var path = Path.Combine(directory, FileName(benchmark, sink, threads));
+        var path = Path.Combine(directory, FileName(runtime, benchmark, sink, threads));
         if (!File.Exists(path)) return null;
 
         var parts = File.ReadAllText(path).Split(' ');
         return 100.0 * long.Parse(parts[1]) / long.Parse(parts[0]);
     }
 
-    private static string FileName(string benchmark, string sink, int threads) => $"{benchmark}.{sink}.{threads}.txt";
+    private static string FileName(string runtime, string benchmark, string sink, int threads) =>
+        $"{runtime}.{benchmark}.{sink}.{threads}.txt";
 }
