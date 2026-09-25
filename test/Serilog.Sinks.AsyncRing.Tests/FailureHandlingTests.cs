@@ -1,3 +1,6 @@
+// These tests block on tasks with a timeout on purpose, so a hang fails the test instead of stalling the run.
+#pragma warning disable xUnit1031
+
 using System;
 using System.IO;
 using System.Threading;

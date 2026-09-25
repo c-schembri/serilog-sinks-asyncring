@@ -1,0 +1,87 @@
+name: Benchmarks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'test/Serilog.Sinks.AsyncRing.Benchmarks/**'
+      - '.github/workflows/benchmarks.yml'
+      - '.github/scripts/update_benchmarks.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: benchmarks
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  run:
+    name: Run on ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: Linux
+          - os: windows-latest
+            name: Windows
+          - os: macos-latest
+            name: macOS
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Run benchmarks
+        shell: bash
+        run: dotnet run -c Release -f net10.0 --project test/Serilog.Sinks.AsyncRing.Benchmarks -- --filter '*'
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: benchmarks-${{ matrix.name }}
+          path: BenchmarkDotNet.Artifacts/results/*-report-github.md
+
+  publish:
+    name: Update README
+    needs: run
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: benchmarks-*
+          path: results
+
+      - name: Write results into the README
+        run: python3 .github/scripts/update_benchmarks.py results README.md
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Commit
+        run: |
+          if git diff --quiet README.md; then
+            echo "README unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Update CI benchmark results [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main

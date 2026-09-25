@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call: # used by the release workflow
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  test:
+    name: Test on ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: Linux
+          - os: windows-latest
+            name: Windows
+          - os: macos-latest
+            name: macOS
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            6.0.x
+            8.0.x
+            10.0.x
+
+      - name: Build
+        run: dotnet build -c Release -p:ContinuousIntegrationBuild=true
+
+      # .NET 6, 8 and 10 everywhere, plus .NET Framework 4.8 on Windows.
+      - name: Test
+        run: dotnet test test/Serilog.Sinks.AsyncRing.Tests -c Release --no-build --logger GitHubActions --blame-hang-timeout 5m
+
+  package:
+    name: Package
+    needs: test
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    # Windows, so the .NET Framework builds are included.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Pack
+        shell: bash
+        run: >
+          dotnet pack src/Serilog.Sinks.AsyncRing -c Release -o artifacts
+          -p:ContinuousIntegrationBuild=true --version-suffix "ci.${{ github.run_number }}"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: nuget-package
+          path: artifacts/

@@ -1,5 +1,10 @@
 # Serilog.Sinks.AsyncRing
 
+[![CI](https://github.com/c-schembri/serilog-sinks-asyncring/actions/workflows/ci.yml/badge.svg)](https://github.com/c-schembri/serilog-sinks-asyncring/actions/workflows/ci.yml)
+[![Benchmarks](https://github.com/c-schembri/serilog-sinks-asyncring/actions/workflows/benchmarks.yml/badge.svg)](https://github.com/c-schembri/serilog-sinks-asyncring/actions/workflows/benchmarks.yml)
+[![NuGet](https://img.shields.io/nuget/v/Serilog.Sinks.AsyncRing.svg)](https://www.nuget.org/packages/Serilog.Sinks.AsyncRing)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+
 An asynchronous wrapper for other [Serilog](https://serilog.net) sinks, and a drop-in replacement for
 [Serilog.Sinks.Async](https://github.com/serilog/serilog-sinks-async). It has exactly the same public API,
 namespaces and defaults, but hands events to the background thread through a lock-free ring buffer. That makes
@@ -46,10 +51,25 @@ sustained overload any async wrapper eventually fills its buffer and then drops 
 little each logging call costs, and how much better the background thread keeps up when many threads log at
 once.
 
+### Latest results from CI
+
+CI runs the same benchmarks on Linux, Windows and macOS whenever the library changes, and updates this section.
+GitHub's runners have only 3–4 cores (so 16 logging threads compete for them) and are noisier than a dedicated
+machine, so compare the two sinks within each table rather than with the figures above.
+
+<!-- ci-benchmarks:start -->
+Results appear here after the first benchmark run.
+<!-- ci-benchmarks:end -->
+
 ## Getting started
 
 Replace the `Serilog.Sinks.Async` package with this one. No code changes are needed: the configuration
 method, the namespaces (`Serilog`, `Serilog.Sinks.Async`) and the interfaces are the same.
+
+```sh
+dotnet remove package Serilog.Sinks.Async
+dotnet add package Serilog.Sinks.AsyncRing
+```
 
 ```csharp
 Log.Logger = new LoggerConfiguration()
@@ -189,7 +209,8 @@ dotnet test
 
 The tests include Serilog.Sinks.Async's own test suite, run unchanged against this implementation. They also
 check that the public API is identical to Serilog.Sinks.Async 2.1.0's, and stress the ring buffer: many threads,
-tiny buffers, constant wrap-around, and disposal while logging.
+tiny buffers, constant wrap-around, and disposal while logging. CI runs them on Linux, Windows and macOS, on
+.NET 6, 8 and 10 (and .NET Framework 4.8 on Windows), and each run's package is attached to it as an artifact.
 
 The benchmarks use [BenchmarkDotNet](https://benchmarkdotnet.org) and compare this package with Serilog.Sinks.Async
 2.1.0 and with logging straight to the sink (no queue):
