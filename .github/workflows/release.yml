@@ -53,7 +53,8 @@ jobs:
         shell: bash
         run: |
           for package in artifacts/*.nupkg; do
-            dotnet nuget push "$package" --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"               --source https://api.nuget.org/v3/index.json --skip-duplicate
+            dotnet nuget push "$package" --source https://api.nuget.org/v3/index.json --skip-duplicate \
+              --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
           done
 
       - name: Create GitHub release

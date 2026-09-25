@@ -8,7 +8,9 @@ namespace Serilog.Sinks.Async.Tests;
 
 // Many threads logging into small buffers, so the ring wraps around constantly and the full,
 // lapped and closing paths all get exercised. Every event must be delivered exactly once, in its
-// thread's order, or accounted for as dropped or rejected.
+// thread's order, or accounted for as dropped or rejected. They load every core, so they run on their own
+// rather than alongside the timing-sensitive tests.
+[Collection(nameof(RingBufferStressTests))]
 public class RingBufferStressTests
 {
     private const int Threads = 16;
@@ -102,3 +104,6 @@ public class RingBufferStressTests
         foreach (var producer in producers) producer.Join();
     }
 }
+
+[CollectionDefinition(nameof(RingBufferStressTests), DisableParallelization = true)]
+public class RingBufferStressCollection;
