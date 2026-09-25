@@ -22,6 +22,7 @@ public abstract class LoggingBenchmark
     protected const string AsyncRingTarget = "AsyncRing";
 
     private readonly CountingSink _sink = new();
+    private ResourceMonitor? _resources;
     private ThreadRunner? _threads;
     private Logger? _logger;
     private Func<long> _dropped = () => 0;
@@ -34,13 +35,26 @@ public abstract class LoggingBenchmark
     /// <summary>The <c>bufferSize</c> passed to <c>WriteTo.Async()</c>.</summary>
     protected abstract int BufferSize { get; }
 
+    /// <summary>
+    /// How many events one of BenchmarkDotNet's operations stands for: one per thread when Mean is the time per
+    /// call on each thread, or one when it's the time per event.
+    /// </summary>
+    protected virtual int EventsPerOperation => Threads;
+
+    // Each set-up starts measuring resources before creating the logger, so the logger's buffers count as
+    // memory in use.
+
     [GlobalSetup(Target = NoQueueTarget)]
-    public void SetUpNoQueue() =>
+    public void SetUpNoQueue()
+    {
+        _resources = ResourceMonitor.Start();
         SetUp(NoQueueTarget, new LoggerConfiguration().WriteTo.Sink(_sink).CreateLogger(), () => 0);
+    }
 
     [GlobalSetup(Target = SerilogSinksAsyncTarget)]
     public void SetUpSerilogSinksAsync()
     {
+        _resources = ResourceMonitor.Start();
         var monitor = new UpstreamMonitor();
         var logger = Upstream.Async(new LoggerConfiguration().WriteTo, a => a.Sink(_sink), BufferSize, monitor: monitor).CreateLogger();
         SetUp(SerilogSinksAsyncTarget, logger, () => monitor.Dropped);
@@ -49,6 +63,7 @@ public abstract class LoggingBenchmark
     [GlobalSetup(Target = AsyncRingTarget)]
     public void SetUpAsyncRing()
     {
+        _resources = ResourceMonitor.Start();
         var monitor = new AsyncRingMonitor();
         var logger = new LoggerConfiguration().WriteTo.Async(a => a.Sink(_sink), BufferSize, monitor: monitor).CreateLogger();
         SetUp(AsyncRingTarget, logger, () => monitor.Dropped);
@@ -59,7 +74,10 @@ public abstract class LoggingBenchmark
     {
         _logger?.Dispose(); // flushes anything still queued
         _threads?.Dispose();
-        DeliveryStats.Save(DeliveryStats.CurrentRuntime, BenchmarkClassName(), _sinkName, Threads, _logged, _sink.Count);
+        var resources = _resources?.Stats(BenchmarkConfig.MeasuredIterations) ?? default;
+        _resources?.Dispose();
+        BenchmarkStats.Save(BenchmarkStats.CurrentRuntime, BenchmarkClassName(), _sinkName, Threads,
+            new BenchmarkStats(_logged, _sink.Count, EventsPerOperation, resources));
     }
 
     // BenchmarkDotNet runs a generated subclass of the benchmark class; the stats are keyed by the real one.
@@ -73,17 +91,25 @@ public abstract class LoggingBenchmark
     /// <summary>Has every thread log <paramref name="eventsPerThread"/> events, and returns once they all have.</summary>
     protected void LogOnAllThreads(int eventsPerThread)
     {
-        var logger = _logger!;
-        _threads!.Run(() =>
-        {
-            for (var i = 0; i < eventsPerThread; i++)
-                logger.Information("Order {OrderId} for {Customer}", i, "acme");
-        });
-        _logged += (long)eventsPerThread * Threads;
+        _resources!.Begin();
+        RunOnAllThreads(eventsPerThread);
+        _resources.End((long)eventsPerThread * Threads);
+    }
+
+    /// <summary>
+    /// Has every thread log <paramref name="eventsPerThread"/> events, and returns once they've all reached the
+    /// sink (or been dropped).
+    /// </summary>
+    protected void LogOnAllThreadsAndWaitUntilDrained(int eventsPerThread)
+    {
+        _resources!.Begin();
+        RunOnAllThreads(eventsPerThread);
+        WaitUntilDrained();
+        _resources.End((long)eventsPerThread * Threads);
     }
 
     /// <summary>Waits until every event logged so far has either reached the sink or been dropped.</summary>
-    protected void WaitUntilDrained()
+    protected void WaitUntilDrained() => _resources!.SampleMemoryWhile(() =>
     {
         var deadline = DateTime.UtcNow.AddMinutes(1);
         var spinner = new SpinWait();
@@ -93,6 +119,17 @@ public abstract class LoggingBenchmark
                 throw new TimeoutException($"Only {_sink.Count + _dropped():N0} of {_logged:N0} events were written or dropped.");
             spinner.SpinOnce(sleep1Threshold: -1);
         }
+    });
+
+    private void RunOnAllThreads(int eventsPerThread)
+    {
+        var logger = _logger!;
+        _threads!.Run(() =>
+        {
+            for (var i = 0; i < eventsPerThread; i++)
+                logger.Information("Order {OrderId} for {Customer}", i, "acme");
+        });
+        _logged += (long)eventsPerThread * Threads;
     }
 
     private void SetUp(string sinkName, Logger logger, Func<long> dropped)

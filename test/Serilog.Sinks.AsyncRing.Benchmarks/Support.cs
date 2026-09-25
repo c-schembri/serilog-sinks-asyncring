@@ -1,5 +1,6 @@
 extern alias upstream;
 
+using System.Globalization;
 using Serilog.Core;
 using Serilog.Events;
 using RingInspector = Serilog.Sinks.Async.IAsyncLogEventSinkInspector;
@@ -95,24 +96,31 @@ public sealed class ThreadRunner : IDisposable
 }
 
 /// <summary>
-/// BenchmarkDotNet runs each benchmark in its own process, so the number of events delivered is
-/// written to a file there and read back by <see cref="DeliveredColumn"/> when the summary is built.
+/// What a benchmark process measured: events logged and delivered, and the resources used. BenchmarkDotNet
+/// runs each benchmark in its own process, so these are written to a file there and read back by the summary
+/// columns in <see cref="BenchmarkConfig"/>.
 /// </summary>
-public static class DeliveryStats
+public sealed record BenchmarkStats(long Logged, long Delivered, int EventsPerOperation, ResourceStats Resources)
 {
     public const string DirectoryVariable = "ASYNCRING_BENCHMARK_STATS";
 
     /// <summary>The runtime this process is running on, in the same form as a target framework (<c>net8.0</c>).</summary>
     public static string CurrentRuntime => $"net{Environment.Version.Major}.{Environment.Version.Minor}";
 
-    public static void Save(string runtime, string benchmark, string sink, int threads, long logged, long delivered)
+    public double DeliveredPercentage => Logged > 0 ? 100.0 * Delivered / Logged : 0;
+
+    public static void Save(string runtime, string benchmark, string sink, int threads, BenchmarkStats stats)
     {
         var directory = Environment.GetEnvironmentVariable(DirectoryVariable);
-        if (string.IsNullOrEmpty(directory) || logged == 0) return;
-        File.WriteAllText(Path.Combine(directory, FileName(runtime, benchmark, sink, threads)), $"{logged} {delivered}");
+        if (string.IsNullOrEmpty(directory) || stats.Logged == 0) return;
+
+        var r = stats.Resources;
+        var values = new double[] { stats.Logged, stats.Delivered, stats.EventsPerOperation, r.AllocatedBytesPerEvent, r.AllocationsPerEvent, r.MemoryAverage, r.MemoryPeak };
+        File.WriteAllText(Path.Combine(directory, FileName(runtime, benchmark, sink, threads)),
+            string.Join(" ", values.Select(value => value.ToString("R", CultureInfo.InvariantCulture))));
     }
 
-    public static double? LoadPercentage(string runtime, string benchmark, string sink, int threads)
+    public static BenchmarkStats? Load(string runtime, string benchmark, string sink, int threads)
     {
         var directory = Environment.GetEnvironmentVariable(DirectoryVariable);
         if (string.IsNullOrEmpty(directory)) return null;
@@ -120,8 +128,8 @@ public static class DeliveryStats
         var path = Path.Combine(directory, FileName(runtime, benchmark, sink, threads));
         if (!File.Exists(path)) return null;
 
-        var parts = File.ReadAllText(path).Split(' ');
-        return 100.0 * long.Parse(parts[1]) / long.Parse(parts[0]);
+        var v = File.ReadAllText(path).Split(' ').Select(value => double.Parse(value, CultureInfo.InvariantCulture)).ToArray();
+        return new BenchmarkStats((long)v[0], (long)v[1], (int)v[2], new ResourceStats(v[3], v[4], v[5], v[6]));
     }
 
     private static string FileName(string runtime, string benchmark, string sink, int threads) =>

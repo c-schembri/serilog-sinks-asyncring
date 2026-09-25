@@ -39,6 +39,8 @@ public class ThroughputBenchmarks : LoggingBenchmark
 
     protected override int BufferSize => 2_000_000;
 
+    protected override int EventsPerOperation => 1; // Mean is the time per event
+
     [Benchmark(Baseline = true, OperationsPerInvoke = TotalEvents)]
     public void SerilogSinksAsync() => LogAndDrain();
 
@@ -48,11 +50,7 @@ public class ThroughputBenchmarks : LoggingBenchmark
     [Benchmark(OperationsPerInvoke = TotalEvents)]
     public void NoQueue() => LogAndDrain();
 
-    private void LogAndDrain()
-    {
-        LogOnAllThreads(TotalEvents / Threads);
-        WaitUntilDrained();
-    }
+    private void LogAndDrain() => LogOnAllThreadsAndWaitUntilDrained(TotalEvents / Threads);
 }
 
 /// <summary>

@@ -38,6 +38,13 @@ def parse_report(path):
             continue  # the separator under the header, or a blank row between groups
         else:
             rows.append(dict(zip(header, cells)))
+
+    # With a single runtime, BenchmarkDotNet leaves the Runtime column out; take it from the job line instead
+    # ("  Job-ABCDEF : .NET 10.0.0 (...)").
+    job_runtime = next((re.search(r":\s*(\.NET [\d.]+)", line).group(1)
+                        for line in environment if "Job-" in line and re.search(r":\s*\.NET [\d.]+", line)), "")
+    for row in rows:
+        row.setdefault("Runtime", job_runtime)
     return environment, rows
 
 
@@ -78,6 +85,8 @@ def comparison(upstream_ns, ours_ns):
     if not upstream_ns or not ours_ns:
         return "–"
     ratio = upstream_ns / ours_ns
+    if 1 / 1.05 <= ratio <= 1.05:
+        return "about the same"
     return f"{ratio:.1f}× faster" if ratio >= 1 else f"{1 / ratio:.1f}× slower"
 
 
@@ -117,6 +126,46 @@ def overload_table(rows):
     return table(["Runtime", "Threads", "Serilog.Sinks.Async", "AsyncRing"], lines)
 
 
+SINK_NAMES = {UPSTREAM: "Serilog.Sinks.Async", OURS: "AsyncRing", NO_QUEUE: "No queue"}
+
+
+def resources_table(rows):
+    """Memory in use and allocation rates, one row per sink, runtime and thread count."""
+    def value(row, column):
+        return row.get(column) or "–"
+
+    lines = []
+    for (runtime, threads), methods in by_case(rows).items():
+        for method in (UPSTREAM, OURS, NO_QUEUE):
+            row = methods.get(method)
+            if row is None:
+                continue
+            memory = f"{value(row, 'Memory avg')} / {value(row, 'Memory peak')}"
+            lines.append([runtime_label(runtime), str(threads), SINK_NAMES[method], memory,
+                          value(row, "Allocations/s"), value(row, "Allocated/s"), value(row, "Allocated/event")])
+    return table(["Runtime", "Threads", "Sink", "Memory in use (avg / peak)", "Allocations/s",
+                  "Allocated/s", "Allocated/event"], lines)
+
+
+def resources_section(parsed):
+    if not any("Memory avg" in row for _, rows in parsed.values() for row in rows):
+        return ""
+    return "\n".join([
+        "<details>\n<summary>Memory and allocations</summary>\n",
+        "Memory in use is the managed heap after garbage collections, above what it was before the logger existed "
+        "(average over time / peak). Allocations per second are estimated from the runtime's allocation sampling; "
+        "allocated bytes are exact. Faster sinks log more events per second, so they allocate more per second: "
+        "compare the bytes per event.\n",
+        "**Cost of a logging call**\n",
+        resources_table(parsed["LogCallBenchmarks"][1]) + "\n",
+        "**Throughput**\n",
+        resources_table(parsed["ThroughputBenchmarks"][1]) + "\n",
+        "**Overload with the default 10,000-event buffer**\n",
+        resources_table(parsed["OverloadBenchmarks"][1]) + "\n",
+        "</details>\n",
+    ])
+
+
 def headline(rows):
     """'AsyncRing is 9.8× faster per logging call with 16 threads', from the newest runtime and most threads."""
     cases = by_case(rows)
@@ -149,9 +198,10 @@ def system_section(name, folder):
         throughput_table(parsed["ThroughputBenchmarks"][1]) + "\n",
         "**Overload with the default 10,000-event buffer** (per call, and the share of events not dropped)\n",
         overload_table(parsed["OverloadBenchmarks"][1]) + "\n",
+        resources_section(parsed),
         "</details>",
     ]
-    return "\n".join(parts)
+    return "\n".join(part for part in parts if part)
 
 
 def main():
