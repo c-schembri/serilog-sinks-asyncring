@@ -58,7 +58,128 @@ GitHub's runners have only 3–4 cores (so 16 logging threads compete for them) 
 machine, so compare the two sinks within each table rather than with the figures above.
 
 <!-- ci-benchmarks:start -->
-Results appear here after the first benchmark run.
+Last updated 2026-09-25 04:48 UTC from commit `c606388` ([workflow run](https://github.com/c-schembri/serilog-sinks-asyncring/actions/runs/36095247066)).
+
+<details>
+<summary><b>Linux</b>: AsyncRing is 2.3× faster per logging call with 16 threads</summary>
+
+Linux Ubuntu 24.04.5 LTS (Noble Numbat) · AMD EPYC 9V74 2.60GHz, 4 logical and 2 physical cores
+
+**Cost of a logging call** (per call, on each logging thread; nothing dropped)
+
+| Runtime | Threads | Serilog.Sinks.Async | AsyncRing | No queue | AsyncRing is |
+|---|---|---|---|---|---|
+| .NET 10 | 1 | 377 ns | 291 ns | 136 ns | 1.3× faster |
+| .NET 10 | 4 | 1,680 ns | 601 ns | 297 ns | 2.8× faster |
+| .NET 10 | 16 | 9,512 ns | 4,172 ns | 1,217 ns | 2.3× faster |
+| .NET 8 | 1 | 344 ns | 332 ns | 164 ns | 1.0× faster |
+| .NET 8 | 4 | 1,604 ns | 664 ns | 351 ns | 2.4× faster |
+| .NET 8 | 16 | 9,768 ns | 3,909 ns | 1,474 ns | 2.5× faster |
+
+**Throughput** (events per second reaching the sink)
+
+| Runtime | Threads | Serilog.Sinks.Async | AsyncRing | No queue | AsyncRing is |
+|---|---|---|---|---|---|
+| .NET 10 | 1 | 2.7M/s | 3.5M/s | 7.2M/s | 1.3× faster |
+| .NET 10 | 4 | 2.2M/s | 6.5M/s | 14.3M/s | 3.0× faster |
+| .NET 10 | 16 | 1.6M/s | 4.1M/s | 13.3M/s | 2.5× faster |
+| .NET 8 | 1 | 2.4M/s | 3.1M/s | 6.3M/s | 1.3× faster |
+| .NET 8 | 4 | 2.6M/s | 6.4M/s | 11.5M/s | 2.5× faster |
+| .NET 8 | 16 | 1.6M/s | 4.1M/s | 10.7M/s | 2.6× faster |
+
+**Overload with the default 10,000-event buffer** (per call, and the share of events not dropped)
+
+| Runtime | Threads | Serilog.Sinks.Async | AsyncRing |
+|---|---|---|---|
+| .NET 10 | 1 | 362 ns, 100% delivered | 264 ns, 100% delivered |
+| .NET 10 | 4 | 1,228 ns, 76% delivered | 553 ns, 79% delivered |
+| .NET 10 | 16 | 3,204 ns, 23.9% delivered | 2,246 ns, 34% delivered |
+| .NET 8 | 1 | 326 ns, 100% delivered | 324 ns, 100% delivered |
+| .NET 8 | 4 | 1,151 ns, 88.1% delivered | 583 ns, 83.3% delivered |
+| .NET 8 | 16 | 3,733 ns, 24.4% delivered | 2,529 ns, 37.6% delivered |
+
+</details>
+
+<details>
+<summary><b>Windows</b>: AsyncRing is 2.0× faster per logging call with 16 threads</summary>
+
+Windows 11 (10.0.26100.33438/24H2/2024Update/HudsonValley) (Hyper-V) · AMD EPYC 7763 2.44GHz, 4 logical and 2 physical cores
+
+**Cost of a logging call** (per call, on each logging thread; nothing dropped)
+
+| Runtime | Threads | Serilog.Sinks.Async | AsyncRing | No queue | AsyncRing is |
+|---|---|---|---|---|---|
+| .NET 10 | 1 | 426 ns | 316 ns | 174 ns | 1.3× faster |
+| .NET 10 | 4 | 2,239 ns | 1,074 ns | 314 ns | 2.1× faster |
+| .NET 10 | 16 | 11,600 ns | 5,881 ns | 1,374 ns | 2.0× faster |
+| .NET 8 | 1 | 426 ns | 336 ns | 192 ns | 1.3× faster |
+| .NET 8 | 4 | 2,149 ns | 1,042 ns | 407 ns | 2.1× faster |
+| .NET 8 | 16 | 12,811 ns | 6,593 ns | 1,708 ns | 1.9× faster |
+
+**Throughput** (events per second reaching the sink)
+
+| Runtime | Threads | Serilog.Sinks.Async | AsyncRing | No queue | AsyncRing is |
+|---|---|---|---|---|---|
+| .NET 10 | 1 | 2.5M/s | 3.4M/s | 6.3M/s | 1.4× faster |
+| .NET 10 | 4 | 1.5M/s | 4.3M/s | 12.4M/s | 2.9× faster |
+| .NET 10 | 16 | 1.4M/s | 2.8M/s | 12.4M/s | 1.9× faster |
+| .NET 8 | 1 | 2.2M/s | 2.9M/s | 5.2M/s | 1.3× faster |
+| .NET 8 | 4 | 1.7M/s | 3.7M/s | 9.9M/s | 2.2× faster |
+| .NET 8 | 16 | 1.2M/s | 2.6M/s | 9.7M/s | 2.2× faster |
+
+**Overload with the default 10,000-event buffer** (per call, and the share of events not dropped)
+
+| Runtime | Threads | Serilog.Sinks.Async | AsyncRing |
+|---|---|---|---|
+| .NET 10 | 1 | 430 ns, 100% delivered | 282 ns, 100% delivered |
+| .NET 10 | 4 | 1,443 ns, 67.3% delivered | 755 ns, 69.4% delivered |
+| .NET 10 | 16 | 3,810 ns, 25.8% delivered | 3,210 ns, 47.9% delivered |
+| .NET 8 | 1 | 448 ns, 100% delivered | 366 ns, 100% delivered |
+| .NET 8 | 4 | 1,587 ns, 79.1% delivered | 843 ns, 72.4% delivered |
+| .NET 8 | 16 | 4,742 ns, 29% delivered | 3,827 ns, 54.6% delivered |
+
+</details>
+
+<details>
+<summary><b>macOS</b>: AsyncRing is 2.1× faster per logging call with 16 threads</summary>
+
+macOS Tahoe 26.6.2 (25G83) [Darwin 25.6.0] · Apple M1 (Virtual), 3 logical and 3 physical cores
+
+**Cost of a logging call** (per call, on each logging thread; nothing dropped)
+
+| Runtime | Threads | Serilog.Sinks.Async | AsyncRing | No queue | AsyncRing is |
+|---|---|---|---|---|---|
+| .NET 10 | 1 | 681 ns | 416 ns | 459 ns | 1.6× faster |
+| .NET 10 | 4 | 3,024 ns | 1,120 ns | 433 ns | 2.7× faster |
+| .NET 10 | 16 | 16,309 ns | 7,665 ns | 2,127 ns | 2.1× faster |
+| .NET 8 | 1 | 661 ns | 573 ns | 558 ns | 1.2× faster |
+| .NET 8 | 4 | 2,783 ns | 2,076 ns | 740 ns | 1.3× faster |
+| .NET 8 | 16 | 16,577 ns | 9,236 ns | 2,852 ns | 1.8× faster |
+
+**Throughput** (events per second reaching the sink)
+
+| Runtime | Threads | Serilog.Sinks.Async | AsyncRing | No queue | AsyncRing is |
+|---|---|---|---|---|---|
+| .NET 10 | 1 | 1.8M/s | 3.1M/s | 5.7M/s | 1.7× faster |
+| .NET 10 | 4 | 1.7M/s | 5.1M/s | 11.6M/s | 2.9× faster |
+| .NET 10 | 16 | 1.5M/s | 3.2M/s | 12.5M/s | 2.1× faster |
+| .NET 8 | 1 | 1.9M/s | 3.3M/s | 6.2M/s | 1.8× faster |
+| .NET 8 | 4 | 1.2M/s | 5.3M/s | 11.0M/s | 4.3× faster |
+| .NET 8 | 16 | 1.2M/s | 2.9M/s | 12.0M/s | 2.4× faster |
+
+**Overload with the default 10,000-event buffer** (per call, and the share of events not dropped)
+
+| Runtime | Threads | Serilog.Sinks.Async | AsyncRing |
+|---|---|---|---|
+| .NET 10 | 1 | 658 ns, 99% delivered | 388 ns, 100% delivered |
+| .NET 10 | 4 | 2,821 ns, 67.4% delivered | 1,687 ns, 85.2% delivered |
+| .NET 10 | 16 | 3,598 ns, 13.9% delivered | 3,542 ns, 35.3% delivered |
+| .NET 8 | 1 | 742 ns, 100% delivered | 387 ns, 99.6% delivered |
+| .NET 8 | 4 | 2,512 ns, 62.9% delivered | 1,837 ns, 78% delivered |
+| .NET 8 | 16 | 3,110 ns, 14.6% delivered | 3,589 ns, 40.4% delivered |
+
+</details>
+
 <!-- ci-benchmarks:end -->
 
 ## Getting started
