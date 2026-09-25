@@ -90,45 +90,45 @@ GitHub's runners have only 3–4 cores (so 16 logging threads compete for them) 
 machine, so compare the two sinks within each table rather than with the figures above.
 
 <!-- ci-benchmarks:start -->
-Last updated 2026-09-25 08:13 UTC from commit `ce93c02` ([workflow run](https://github.com/c-schembri/serilog-sinks-asyncring/actions/runs/36110592383)).
+Last updated 2026-09-25 14:25 UTC from commit `58c8bb1` ([workflow run](https://github.com/c-schembri/serilog-sinks-asyncring/actions/runs/36146183299)).
 
 <details>
-<summary><b>Linux</b>: AsyncRing is 2.7× faster per logging call with 16 threads</summary>
+<summary><b>Linux</b>: AsyncRing is 3.5× faster per logging call with 16 threads</summary>
 
-Linux Ubuntu 24.04.5 LTS (Noble Numbat) · AMD EPYC 9V74 2.60GHz, 4 logical and 2 physical cores
+Linux Ubuntu 24.04.5 LTS (Noble Numbat) · Intel Xeon 6973P-C 2.60GHz, 4 logical and 2 physical cores
 
 **Cost of a logging call** (per call, on each logging thread; nothing dropped)
 
 | Runtime | Threads | Serilog.Sinks.Async | AsyncRing | No queue | AsyncRing is |
 |---|---|---|---|---|---|
-| .NET 10 | 1 | 439 ns | 297 ns | 159 ns | 1.5× faster |
-| .NET 10 | 4 | 1,895 ns | 655 ns | 325 ns | 2.9× faster |
-| .NET 10 | 16 | 11,538 ns | 4,250 ns | 1,433 ns | 2.7× faster |
-| .NET 8 | 1 | 386 ns | 338 ns | 181 ns | 1.1× faster |
-| .NET 8 | 4 | 1,488 ns | 725 ns | 394 ns | 2.1× faster |
-| .NET 8 | 16 | 12,116 ns | 4,342 ns | 1,776 ns | 2.8× faster |
+| .NET 10 | 1 | 615 ns | 344 ns | 126 ns | 1.8× faster |
+| .NET 10 | 4 | 2,814 ns | 674 ns | 361 ns | 4.2× faster |
+| .NET 10 | 16 | 12,607 ns | 3,569 ns | 1,356 ns | 3.5× faster |
+| .NET 8 | 1 | 664 ns | 379 ns | 155 ns | 1.8× faster |
+| .NET 8 | 4 | 2,894 ns | 752 ns | 342 ns | 3.8× faster |
+| .NET 8 | 16 | 13,524 ns | 3,825 ns | 1,512 ns | 3.5× faster |
 
 **Throughput** (events per second reaching the sink)
 
 | Runtime | Threads | Serilog.Sinks.Async | AsyncRing | No queue | AsyncRing is |
 |---|---|---|---|---|---|
-| .NET 10 | 1 | 2.2M/s | 3.3M/s | 6.9M/s | 1.5× faster |
-| .NET 10 | 4 | 2.2M/s | 6.1M/s | 12.3M/s | 2.8× faster |
-| .NET 10 | 16 | 1.5M/s | 3.9M/s | 11.4M/s | 2.7× faster |
-| .NET 8 | 1 | 2.5M/s | 3.0M/s | 5.8M/s | 1.2× faster |
-| .NET 8 | 4 | 3.0M/s | 5.8M/s | 10.6M/s | 1.9× faster |
-| .NET 8 | 16 | 1.4M/s | 3.6M/s | 9.1M/s | 2.7× faster |
+| .NET 10 | 1 | 1.4M/s | 2.7M/s | 8.1M/s | 1.9× faster |
+| .NET 10 | 4 | 1.3M/s | 5.8M/s | 12.8M/s | 4.5× faster |
+| .NET 10 | 16 | 1.2M/s | 4.2M/s | 11.9M/s | 3.5× faster |
+| .NET 8 | 1 | 1.4M/s | 2.6M/s | 6.1M/s | 1.9× faster |
+| .NET 8 | 4 | 1.2M/s | 5.3M/s | 11.3M/s | 4.4× faster |
+| .NET 8 | 16 | 1.2M/s | 3.9M/s | 9.9M/s | 3.4× faster |
 
 **Overload with the default 10,000-event buffer** (per call, and the share of events not dropped)
 
 | Runtime | Threads | Serilog.Sinks.Async | AsyncRing |
 |---|---|---|---|
-| .NET 10 | 1 | 396 ns, 100% delivered | 315 ns, 100% delivered |
-| .NET 10 | 4 | 1,154 ns, 86.7% delivered | 630 ns, 80.7% delivered |
-| .NET 10 | 16 | 3,680 ns, 24.5% delivered | 2,577 ns, 36.5% delivered |
-| .NET 8 | 1 | 395 ns, 100% delivered | 354 ns, 100% delivered |
-| .NET 8 | 4 | 1,277 ns, 81.4% delivered | 636 ns, 86.4% delivered |
-| .NET 8 | 16 | 4,521 ns, 34.5% delivered | 2,973 ns, 44.8% delivered |
+| .NET 10 | 1 | 671 ns, 100% delivered | 357 ns, 100% delivered |
+| .NET 10 | 4 | 1,644 ns, 58.7% delivered | 569 ns, 72.6% delivered |
+| .NET 10 | 16 | 4,201 ns, 13% delivered | 2,433 ns, 31% delivered |
+| .NET 8 | 1 | 708 ns, 100% delivered | 362 ns, 100% delivered |
+| .NET 8 | 4 | 1,829 ns, 55.7% delivered | 666 ns, 76.8% delivered |
+| .NET 8 | 16 | 4,784 ns, 17.3% delivered | 3,006 ns, 34.2% delivered |
 
 <details>
 <summary>Memory and allocations</summary>
@@ -139,77 +139,77 @@ Memory in use is the managed heap after garbage collections, above what it was b
 
 | Runtime | Threads | Sink | Memory in use (avg / peak) | Allocations/s | Allocated/s | Allocated/event |
 |---|---|---|---|---|---|---|
-| .NET 10 | 1 | Serilog.Sinks.Async | 9.4 KB / 31.4 KB | 18.2M | 927.1 MB/s | 427 B |
-| .NET 10 | 1 | AsyncRing | 32.0 MB / 32.0 MB | 26.1M | 1.33 GB/s | 426 B |
-| .NET 10 | 1 | No queue | 0 B / 0 B | 50.7M | 2.49 GB/s | 427 B |
-| .NET 10 | 4 | Serilog.Sinks.Async | 18.0 MB / 55.6 MB | 12.5M | 859.0 MB/s | 427 B |
-| .NET 10 | 4 | AsyncRing | 34.1 MB / 47.6 MB | 35.3M | 2.43 GB/s | 427 B |
-| .NET 10 | 4 | No queue | 0 B / 4.1 KB | 72.1M | 4.90 GB/s | 427 B |
-| .NET 10 | 16 | Serilog.Sinks.Async | 360.3 MB / 641.7 MB | 8.3M | 564.3 MB/s | 427 B |
-| .NET 10 | 16 | AsyncRing | 47.0 MB / 96.5 MB | 22.2M | 1.50 GB/s | 427 B |
-| .NET 10 | 16 | No queue | 18.3 KB / 41.8 KB | 65.8M | 4.44 GB/s | 427 B |
-| .NET 8 | 1 | Serilog.Sinks.Async | 1.3 KB / 9.5 KB | 20.8M | 1.03 GB/s | 426 B |
-| .NET 8 | 1 | AsyncRing | 32.0 MB / 32.0 MB | 23.0M | 1.18 GB/s | 426 B |
-| .NET 8 | 1 | No queue | 0 B / 1.6 KB | 44.7M | 2.20 GB/s | 427 B |
-| .NET 8 | 4 | Serilog.Sinks.Async | 12.3 MB / 40.8 MB | 15.7M | 1.07 GB/s | 427 B |
-| .NET 8 | 4 | AsyncRing | 34.1 MB / 48.0 MB | 31.8M | 2.19 GB/s | 427 B |
-| .NET 8 | 4 | No queue | 60 B / 12.0 KB | 59.0M | 4.03 GB/s | 427 B |
-| .NET 8 | 16 | Serilog.Sinks.Async | 361.2 MB / 643.2 MB | 7.9M | 537.3 MB/s | 427 B |
-| .NET 8 | 16 | AsyncRing | 44.8 MB / 81.7 MB | 21.6M | 1.46 GB/s | 427 B |
-| .NET 8 | 16 | No queue | 36.1 KB / 104.5 KB | 52.4M | 3.58 GB/s | 427 B |
+| .NET 10 | 1 | Serilog.Sinks.Async | 34.4 KB / 124.9 KB | 13.1M | 661.0 MB/s | 427 B |
+| .NET 10 | 1 | AsyncRing | 32.0 MB / 32.0 MB | 22.6M | 1.15 GB/s | 426 B |
+| .NET 10 | 1 | No queue | 0 B / 39.7 KB | 63.8M | 3.16 GB/s | 426 B |
+| .NET 10 | 4 | Serilog.Sinks.Async | 34.8 MB / 93.7 MB | 8.4M | 578.2 MB/s | 427 B |
+| .NET 10 | 4 | AsyncRing | 32.7 MB / 39.8 MB | 34.7M | 2.36 GB/s | 426 B |
+| .NET 10 | 4 | No queue | 0 B / 16.6 KB | 64.6M | 4.41 GB/s | 427 B |
+| .NET 10 | 16 | Serilog.Sinks.Async | 328.0 MB / 648.9 MB | 7.5M | 517.1 MB/s | 427 B |
+| .NET 10 | 16 | AsyncRing | 57.0 MB / 145.1 MB | 26.1M | 1.78 GB/s | 426 B |
+| .NET 10 | 16 | No queue | 2.7 KB / 19.0 KB | 68.1M | 4.69 GB/s | 426 B |
+| .NET 8 | 1 | Serilog.Sinks.Async | 1.8 KB / 11.6 KB | 12.1M | 612.4 MB/s | 427 B |
+| .NET 8 | 1 | AsyncRing | 32.0 MB / 32.0 MB | 20.4M | 1.05 GB/s | 426 B |
+| .NET 8 | 1 | No queue | 0 B / 33.8 KB | 51.8M | 2.56 GB/s | 426 B |
+| .NET 8 | 4 | Serilog.Sinks.Async | 27.9 MB / 71.5 MB | 8.2M | 562.2 MB/s | 427 B |
+| .NET 8 | 4 | AsyncRing | 33.4 MB / 41.3 MB | 31.0M | 2.11 GB/s | 426 B |
+| .NET 8 | 4 | No queue | 0 B / 1.8 KB | 67.6M | 4.64 GB/s | 426 B |
+| .NET 8 | 16 | Serilog.Sinks.Async | 307.1 MB / 651.1 MB | 7.0M | 481.2 MB/s | 427 B |
+| .NET 8 | 16 | AsyncRing | 47.9 MB / 116.5 MB | 24.3M | 1.66 GB/s | 426 B |
+| .NET 8 | 16 | No queue | 10.2 KB / 24.2 KB | 61.3M | 4.20 GB/s | 426 B |
 
 **Throughput**
 
 | Runtime | Threads | Sink | Memory in use (avg / peak) | Allocations/s | Allocated/s | Allocated/event |
 |---|---|---|---|---|---|---|
-| .NET 10 | 1 | Serilog.Sinks.Async | 73.3 KB / 94.0 KB | 17.8M | 901.9 MB/s | 427 B |
-| .NET 10 | 1 | AsyncRing | 32.0 MB / 32.1 MB | 26.4M | 1.31 GB/s | 427 B |
-| .NET 10 | 1 | No queue | 588 B / 29.3 KB | 55.6M | 2.74 GB/s | 427 B |
-| .NET 10 | 4 | Serilog.Sinks.Async | 21.1 MB / 62.2 MB | 12.9M | 893.5 MB/s | 427 B |
-| .NET 10 | 4 | AsyncRing | 35.3 MB / 52.4 MB | 35.2M | 2.43 GB/s | 427 B |
-| .NET 10 | 4 | No queue | 22.4 KB / 134.9 KB | 72.0M | 4.89 GB/s | 427 B |
-| .NET 10 | 16 | Serilog.Sinks.Async | 355.5 MB / 641.5 MB | 8.8M | 597.3 MB/s | 427 B |
-| .NET 10 | 16 | AsyncRing | 49.7 MB / 91.5 MB | 23.2M | 1.56 GB/s | 427 B |
-| .NET 10 | 16 | No queue | 18.1 KB / 43.5 KB | 67.0M | 4.54 GB/s | 427 B |
-| .NET 8 | 1 | Serilog.Sinks.Async | 21.4 KB / 41.2 KB | 20.4M | 1.01 GB/s | 427 B |
-| .NET 8 | 1 | AsyncRing | 32.0 MB / 32.0 MB | 24.0M | 1.19 GB/s | 427 B |
-| .NET 8 | 1 | No queue | 4.1 KB / 17.7 KB | 46.6M | 2.30 GB/s | 427 B |
-| .NET 8 | 4 | Serilog.Sinks.Async | 13.9 MB / 51.6 MB | 17.5M | 1.20 GB/s | 427 B |
-| .NET 8 | 4 | AsyncRing | 33.4 MB / 45.1 MB | 33.4M | 2.31 GB/s | 427 B |
-| .NET 8 | 4 | No queue | 31.5 KB / 86.3 KB | 61.2M | 4.20 GB/s | 427 B |
-| .NET 8 | 16 | Serilog.Sinks.Async | 342.4 MB / 623.4 MB | 8.2M | 556.0 MB/s | 427 B |
-| .NET 8 | 16 | AsyncRing | 46.1 MB / 80.7 MB | 21.4M | 1.44 GB/s | 427 B |
-| .NET 8 | 16 | No queue | 33.7 KB / 73.5 KB | 52.8M | 3.60 GB/s | 427 B |
+| .NET 10 | 1 | Serilog.Sinks.Async | 11.9 KB / 27.0 KB | 11.5M | 583.5 MB/s | 426 B |
+| .NET 10 | 1 | AsyncRing | 32.0 MB / 32.0 MB | 21.6M | 1.07 GB/s | 426 B |
+| .NET 10 | 1 | No queue | 0 B / 0 B | 64.8M | 3.21 GB/s | 426 B |
+| .NET 10 | 4 | Serilog.Sinks.Async | 83.7 MB / 213.9 MB | 7.7M | 526.9 MB/s | 427 B |
+| .NET 10 | 4 | AsyncRing | 33.5 MB / 42.4 MB | 33.5M | 2.30 GB/s | 426 B |
+| .NET 10 | 4 | No queue | 0 B / 30.2 KB | 73.9M | 5.09 GB/s | 426 B |
+| .NET 10 | 16 | Serilog.Sinks.Async | 293.6 MB / 642.5 MB | 7.1M | 486.1 MB/s | 427 B |
+| .NET 10 | 16 | AsyncRing | 52.1 MB / 130.3 MB | 24.1M | 1.65 GB/s | 426 B |
+| .NET 10 | 16 | No queue | 6.0 KB / 38.1 KB | 68.5M | 4.71 GB/s | 426 B |
+| .NET 8 | 1 | Serilog.Sinks.Async | 1.6 KB / 10.0 KB | 11.0M | 559.2 MB/s | 426 B |
+| .NET 8 | 1 | AsyncRing | 32.0 MB / 32.0 MB | 20.5M | 1.01 GB/s | 426 B |
+| .NET 8 | 1 | No queue | 0 B / 3.5 KB | 49.3M | 2.44 GB/s | 426 B |
+| .NET 8 | 4 | Serilog.Sinks.Async | 85.9 MB / 213.7 MB | 7.2M | 490.4 MB/s | 427 B |
+| .NET 8 | 4 | AsyncRing | 33.4 MB / 41.9 MB | 30.6M | 2.10 GB/s | 426 B |
+| .NET 8 | 4 | No queue | 2.8 KB / 50.9 KB | 65.3M | 4.51 GB/s | 426 B |
+| .NET 8 | 16 | Serilog.Sinks.Async | 281.5 MB / 585.6 MB | 6.9M | 476.0 MB/s | 427 B |
+| .NET 8 | 16 | AsyncRing | 51.4 MB / 127.6 MB | 23.0M | 1.57 GB/s | 426 B |
+| .NET 8 | 16 | No queue | 10.9 KB / 24.7 KB | 57.2M | 3.92 GB/s | 426 B |
 
 **Overload with the default 10,000-event buffer**
 
 | Runtime | Threads | Sink | Memory in use (avg / peak) | Allocations/s | Allocated/s | Allocated/event |
 |---|---|---|---|---|---|---|
-| .NET 10 | 1 | Serilog.Sinks.Async | 11.5 KB / 31.7 KB | 20.3M | 1.00 GB/s | 427 B |
-| .NET 10 | 1 | AsyncRing | 248.6 KB / 262.7 KB | 25.6M | 1.26 GB/s | 427 B |
-| .NET 10 | 1 | No queue | 0 B / 0 B | 39.5M | 1.94 GB/s | 427 B |
-| .NET 10 | 4 | Serilog.Sinks.Async | 3.0 MB / 10.0 MB | 22.7M | 1.43 GB/s | 444 B |
-| .NET 10 | 4 | AsyncRing | 1.2 MB / 4.0 MB | 44.7M | 2.56 GB/s | 434 B |
-| .NET 10 | 4 | No queue | 0 B / 16.6 KB | 68.9M | 4.66 GB/s | 427 B |
-| .NET 10 | 16 | Serilog.Sinks.Async | 6.5 MB / 20.1 MB | 36.1M | 2.08 GB/s | 513 B |
-| .NET 10 | 16 | AsyncRing | 5.6 MB / 15.5 MB | 60.4M | 2.59 GB/s | 447 B |
-| .NET 10 | 16 | No queue | 16.7 KB / 41.6 KB | 66.3M | 4.48 GB/s | 427 B |
-| .NET 8 | 1 | Serilog.Sinks.Async | 3.1 KB / 13.7 KB | 20.4M | 1.01 GB/s | 427 B |
-| .NET 8 | 1 | AsyncRing | 251.6 KB / 255.9 KB | 22.7M | 1.12 GB/s | 427 B |
-| .NET 8 | 1 | No queue | 0 B / 0 B | 41.2M | 2.04 GB/s | 427 B |
-| .NET 8 | 4 | Serilog.Sinks.Async | 3.2 MB / 7.7 MB | 20.7M | 1.32 GB/s | 453 B |
-| .NET 8 | 4 | AsyncRing | 1.0 MB / 3.8 MB | 42.0M | 2.53 GB/s | 432 B |
-| .NET 8 | 4 | No queue | 1.8 KB / 27.6 KB | 58.7M | 4.02 GB/s | 427 B |
-| .NET 8 | 16 | Serilog.Sinks.Async | 6.4 MB / 20.0 MB | 28.1M | 1.65 GB/s | 500 B |
-| .NET 8 | 16 | AsyncRing | 5.0 MB / 14.3 MB | 49.8M | 2.23 GB/s | 445 B |
-| .NET 8 | 16 | No queue | 35.0 KB / 74.0 KB | 52.8M | 3.60 GB/s | 427 B |
+| .NET 10 | 1 | Serilog.Sinks.Async | 24.0 KB / 27.9 KB | 11.9M | 606.0 MB/s | 427 B |
+| .NET 10 | 1 | AsyncRing | 248.0 KB / 269.9 KB | 22.4M | 1.11 GB/s | 426 B |
+| .NET 10 | 1 | No queue | 0 B / 7.4 KB | 37.1M | 1.84 GB/s | 426 B |
+| .NET 10 | 4 | Serilog.Sinks.Async | 2.5 MB / 4.0 MB | 21.8M | 1.09 GB/s | 482 B |
+| .NET 10 | 4 | AsyncRing | 911.4 KB / 3.8 MB | 53.5M | 2.86 GB/s | 438 B |
+| .NET 10 | 4 | No queue | 0 B / 6.5 KB | 76.5M | 5.23 GB/s | 427 B |
+| .NET 10 | 16 | Serilog.Sinks.Async | 7.0 MB / 16.4 MB | 34.1M | 1.86 GB/s | 525 B |
+| .NET 10 | 16 | AsyncRing | 3.3 MB / 12.9 MB | 65.6M | 2.75 GB/s | 449 B |
+| .NET 10 | 16 | No queue | 0 B / 9.5 KB | 68.6M | 4.72 GB/s | 426 B |
+| .NET 8 | 1 | Serilog.Sinks.Async | 55 B / 4.2 KB | 11.4M | 574.5 MB/s | 426 B |
+| .NET 8 | 1 | AsyncRing | 255.5 KB / 275.5 KB | 22.2M | 1.10 GB/s | 426 B |
+| .NET 8 | 1 | No queue | 0 B / 9.9 KB | 54.3M | 2.68 GB/s | 426 B |
+| .NET 8 | 4 | Serilog.Sinks.Async | 2.6 MB / 4.0 MB | 19.7M | 1009.4 MB/s | 484 B |
+| .NET 8 | 4 | AsyncRing | 678.5 KB / 3.8 MB | 43.9M | 2.43 GB/s | 435 B |
+| .NET 8 | 4 | No queue | 0 B / 1.5 KB | 59.8M | 4.11 GB/s | 427 B |
+| .NET 8 | 16 | Serilog.Sinks.Async | 5.3 MB / 12.5 MB | 29.7M | 1.62 GB/s | 520 B |
+| .NET 8 | 16 | AsyncRing | 3.4 MB / 11.1 MB | 52.3M | 2.22 GB/s | 448 B |
+| .NET 8 | 16 | No queue | 8.8 KB / 26.6 KB | 62.3M | 4.27 GB/s | 426 B |
 
 </details>
 
 </details>
 
 <details>
-<summary><b>Windows</b>: AsyncRing is 2.4× faster per logging call with 16 threads</summary>
+<summary><b>Windows</b>: AsyncRing is 2.0× faster per logging call with 16 threads</summary>
 
 Windows 11 (10.0.26100.33296/24H2/2024Update/HudsonValley) (Hyper-V) · AMD EPYC 7763 2.44GHz, 4 logical and 2 physical cores
 
@@ -217,34 +217,34 @@ Windows 11 (10.0.26100.33296/24H2/2024Update/HudsonValley) (Hyper-V) · AMD EPYC
 
 | Runtime | Threads | Serilog.Sinks.Async | AsyncRing | No queue | AsyncRing is |
 |---|---|---|---|---|---|
-| .NET 10 | 1 | 480 ns | 325 ns | 235 ns | 1.5× faster |
-| .NET 10 | 4 | 2,571 ns | 1,124 ns | 369 ns | 2.3× faster |
-| .NET 10 | 16 | 13,152 ns | 5,513 ns | 1,451 ns | 2.4× faster |
-| .NET 8 | 1 | 458 ns | 351 ns | 213 ns | 1.3× faster |
-| .NET 8 | 4 | 2,365 ns | 1,189 ns | 446 ns | 2.0× faster |
-| .NET 8 | 16 | 14,141 ns | 6,331 ns | 1,838 ns | 2.2× faster |
+| .NET 10 | 1 | 477 ns | 340 ns | 327 ns | 1.4× faster |
+| .NET 10 | 4 | 2,280 ns | 1,174 ns | 337 ns | 1.9× faster |
+| .NET 10 | 16 | 11,928 ns | 6,091 ns | 1,380 ns | 2.0× faster |
+| .NET 8 | 1 | 452 ns | 352 ns | 213 ns | 1.3× faster |
+| .NET 8 | 4 | 2,334 ns | 1,235 ns | 430 ns | 1.9× faster |
+| .NET 8 | 16 | 13,231 ns | 6,970 ns | 1,745 ns | 1.9× faster |
 
 **Throughput** (events per second reaching the sink)
 
 | Runtime | Threads | Serilog.Sinks.Async | AsyncRing | No queue | AsyncRing is |
 |---|---|---|---|---|---|
-| .NET 10 | 1 | 2.5M/s | 3.1M/s | 4.8M/s | 1.3× faster |
-| .NET 10 | 4 | 1.6M/s | 3.6M/s | 11.2M/s | 2.3× faster |
-| .NET 10 | 16 | 1.2M/s | 3.0M/s | 11.4M/s | 2.4× faster |
-| .NET 8 | 1 | 2.0M/s | 2.6M/s | 4.3M/s | 1.3× faster |
-| .NET 8 | 4 | 1.6M/s | 3.6M/s | 9.4M/s | 2.3× faster |
-| .NET 8 | 16 | 1.2M/s | 2.8M/s | 9.0M/s | 2.4× faster |
+| .NET 10 | 1 | 2.4M/s | 3.2M/s | 5.6M/s | 1.3× faster |
+| .NET 10 | 4 | 1.6M/s | 3.1M/s | 11.6M/s | 2.0× faster |
+| .NET 10 | 16 | 1.3M/s | 2.0M/s | 10.6M/s | 1.5× faster |
+| .NET 8 | 1 | 2.3M/s | 2.8M/s | 4.9M/s | 1.3× faster |
+| .NET 8 | 4 | 1.8M/s | 2.8M/s | 9.1M/s | 1.6× faster |
+| .NET 8 | 16 | 1.1M/s | 2.2M/s | 8.7M/s | 2.0× faster |
 
 **Overload with the default 10,000-event buffer** (per call, and the share of events not dropped)
 
 | Runtime | Threads | Serilog.Sinks.Async | AsyncRing |
 |---|---|---|---|
-| .NET 10 | 1 | 453 ns, 100% delivered | 337 ns, 100% delivered |
-| .NET 10 | 4 | 1,464 ns, 78.7% delivered | 773 ns, 68.8% delivered |
-| .NET 10 | 16 | 3,988 ns, 25.5% delivered | 3,965 ns, 57.7% delivered |
-| .NET 8 | 1 | 467 ns, 100% delivered | 360 ns, 100% delivered |
-| .NET 8 | 4 | 1,445 ns, 81.1% delivered | 894 ns, 69.4% delivered |
-| .NET 8 | 16 | 4,520 ns, 29.4% delivered | 4,183 ns, 58.4% delivered |
+| .NET 10 | 1 | 455 ns, 100% delivered | 338 ns, 100% delivered |
+| .NET 10 | 4 | 1,500 ns, 68.5% delivered | 900 ns, 66.4% delivered |
+| .NET 10 | 16 | 4,029 ns, 27.3% delivered | 3,268 ns, 47.5% delivered |
+| .NET 8 | 1 | 469 ns, 100% delivered | 354 ns, 100% delivered |
+| .NET 8 | 4 | 1,517 ns, 85.1% delivered | 906 ns, 66.2% delivered |
+| .NET 8 | 16 | 4,664 ns, 30.7% delivered | 3,864 ns, 49.3% delivered |
 
 <details>
 <summary>Memory and allocations</summary>
@@ -255,77 +255,77 @@ Memory in use is the managed heap after garbage collections, above what it was b
 
 | Runtime | Threads | Sink | Memory in use (avg / peak) | Allocations/s | Allocated/s | Allocated/event |
 |---|---|---|---|---|---|---|
-| .NET 10 | 1 | Serilog.Sinks.Async | 40.6 KB / 55.2 KB | 16.8M | 848.0 MB/s | 427 B |
-| .NET 10 | 1 | AsyncRing | 32.0 MB / 32.1 MB | 23.9M | 1.22 GB/s | 426 B |
-| .NET 10 | 1 | No queue | 32.8 KB / 60.3 KB | 34.3M | 1.69 GB/s | 427 B |
-| .NET 10 | 4 | Serilog.Sinks.Async | 22.9 MB / 51.6 MB | 9.2M | 633.3 MB/s | 427 B |
-| .NET 10 | 4 | AsyncRing | 41.2 MB / 53.8 MB | 20.9M | 1.41 GB/s | 426 B |
-| .NET 10 | 4 | No queue | 32.2 KB / 62.0 KB | 63.4M | 4.31 GB/s | 427 B |
-| .NET 10 | 16 | Serilog.Sinks.Async | 225.6 MB / 542.0 MB | 7.3M | 495.5 MB/s | 427 B |
-| .NET 10 | 16 | AsyncRing | 49.7 MB / 68.5 MB | 17.0M | 1.15 GB/s | 427 B |
-| .NET 10 | 16 | No queue | 61.0 KB / 117.1 KB | 64.7M | 4.38 GB/s | 427 B |
-| .NET 8 | 1 | Serilog.Sinks.Async | 0 B / 0 B | 17.4M | 887.8 MB/s | 427 B |
-| .NET 8 | 1 | AsyncRing | 31.9 MB / 31.9 MB | 22.2M | 1.13 GB/s | 426 B |
-| .NET 8 | 1 | No queue | 0 B / 0 B | 37.8M | 1.87 GB/s | 427 B |
-| .NET 8 | 4 | Serilog.Sinks.Async | 18.8 MB / 46.6 MB | 9.9M | 688.4 MB/s | 427 B |
-| .NET 8 | 4 | AsyncRing | 42.9 MB / 52.4 MB | 19.6M | 1.34 GB/s | 427 B |
-| .NET 8 | 4 | No queue | 0 B / 0 B | 52.3M | 3.57 GB/s | 427 B |
-| .NET 8 | 16 | Serilog.Sinks.Async | 255.3 MB / 577.1 MB | 6.7M | 460.4 MB/s | 427 B |
-| .NET 8 | 16 | AsyncRing | 48.7 MB / 68.8 MB | 14.8M | 1.00 GB/s | 427 B |
-| .NET 8 | 16 | No queue | 0 B / 0 B | 50.7M | 3.46 GB/s | 427 B |
+| .NET 10 | 1 | Serilog.Sinks.Async | 45.6 KB / 56.4 KB | 16.7M | 853.5 MB/s | 427 B |
+| .NET 10 | 1 | AsyncRing | 32.0 MB / 32.1 MB | 22.8M | 1.17 GB/s | 426 B |
+| .NET 10 | 1 | No queue | 29.6 KB / 46.3 KB | 24.6M | 1.21 GB/s | 426 B |
+| .NET 10 | 4 | Serilog.Sinks.Async | 24.4 MB / 51.1 MB | 10.4M | 714.1 MB/s | 427 B |
+| .NET 10 | 4 | AsyncRing | 43.8 MB / 74.4 MB | 20.0M | 1.35 GB/s | 426 B |
+| .NET 10 | 4 | No queue | 0 B / 0 B | 69.4M | 4.72 GB/s | 427 B |
+| .NET 10 | 16 | Serilog.Sinks.Async | 171.0 MB / 412.4 MB | 8.0M | 546.3 MB/s | 427 B |
+| .NET 10 | 16 | AsyncRing | 54.5 MB / 104.2 MB | 15.5M | 1.04 GB/s | 427 B |
+| .NET 10 | 16 | No queue | 71.4 KB / 117.2 KB | 67.6M | 4.61 GB/s | 427 B |
+| .NET 8 | 1 | Serilog.Sinks.Async | 0 B / 0 B | 17.8M | 900.1 MB/s | 427 B |
+| .NET 8 | 1 | AsyncRing | 31.9 MB / 31.9 MB | 22.1M | 1.13 GB/s | 426 B |
+| .NET 8 | 1 | No queue | 0 B / 0 B | 37.8M | 1.86 GB/s | 427 B |
+| .NET 8 | 4 | Serilog.Sinks.Async | 19.2 MB / 45.5 MB | 10.1M | 697.5 MB/s | 427 B |
+| .NET 8 | 4 | AsyncRing | 43.1 MB / 56.1 MB | 19.0M | 1.29 GB/s | 426 B |
+| .NET 8 | 4 | No queue | 0 B / 0 B | 54.1M | 3.70 GB/s | 427 B |
+| .NET 8 | 16 | Serilog.Sinks.Async | 269.7 MB / 578.8 MB | 7.2M | 492.1 MB/s | 427 B |
+| .NET 8 | 16 | AsyncRing | 52.7 MB / 82.8 MB | 13.5M | 934.0 MB/s | 427 B |
+| .NET 8 | 16 | No queue | 0 B / 0 B | 53.6M | 3.64 GB/s | 427 B |
 
 **Throughput**
 
 | Runtime | Threads | Sink | Memory in use (avg / peak) | Allocations/s | Allocated/s | Allocated/event |
 |---|---|---|---|---|---|---|
-| .NET 10 | 1 | Serilog.Sinks.Async | 73.2 KB / 156.8 KB | 19.7M | 999.2 MB/s | 427 B |
-| .NET 10 | 1 | AsyncRing | 32.0 MB / 32.1 MB | 25.0M | 1.24 GB/s | 427 B |
-| .NET 10 | 1 | No queue | 0 B / 0 B | 38.5M | 1.90 GB/s | 427 B |
-| .NET 10 | 4 | Serilog.Sinks.Async | 24.2 MB / 53.0 MB | 9.4M | 650.0 MB/s | 427 B |
-| .NET 10 | 4 | AsyncRing | 45.0 MB / 61.3 MB | 21.4M | 1.45 GB/s | 427 B |
-| .NET 10 | 4 | No queue | 0 B / 0 B | 65.6M | 4.45 GB/s | 427 B |
-| .NET 10 | 16 | Serilog.Sinks.Async | 191.9 MB / 447.5 MB | 7.5M | 506.8 MB/s | 427 B |
-| .NET 10 | 16 | AsyncRing | 46.9 MB / 68.7 MB | 17.5M | 1.19 GB/s | 427 B |
-| .NET 10 | 16 | No queue | 78.1 KB / 121.5 KB | 67.0M | 4.55 GB/s | 427 B |
-| .NET 8 | 1 | Serilog.Sinks.Async | 343.2 KB / 3.0 MB | 15.8M | 801.1 MB/s | 427 B |
-| .NET 8 | 1 | AsyncRing | 31.9 MB / 34.2 MB | 20.6M | 1.02 GB/s | 427 B |
-| .NET 8 | 1 | No queue | 0 B / 0 B | 34.3M | 1.70 GB/s | 427 B |
-| .NET 8 | 4 | Serilog.Sinks.Async | 22.4 MB / 52.6 MB | 9.4M | 652.1 MB/s | 427 B |
-| .NET 8 | 4 | AsyncRing | 42.7 MB / 58.9 MB | 21.4M | 1.44 GB/s | 427 B |
-| .NET 8 | 4 | No queue | 0 B / 0 B | 54.4M | 3.72 GB/s | 427 B |
-| .NET 8 | 16 | Serilog.Sinks.Async | 345.0 MB / 641.8 MB | 6.9M | 476.2 MB/s | 427 B |
-| .NET 8 | 16 | AsyncRing | 49.6 MB / 68.0 MB | 16.1M | 1.09 GB/s | 427 B |
-| .NET 8 | 16 | No queue | 0 B / 0 B | 52.6M | 3.58 GB/s | 427 B |
+| .NET 10 | 1 | Serilog.Sinks.Async | 101.5 KB / 2.3 MB | 19.2M | 971.2 MB/s | 427 B |
+| .NET 10 | 1 | AsyncRing | 32.1 MB / 32.2 MB | 25.5M | 1.27 GB/s | 427 B |
+| .NET 10 | 1 | No queue | 31.1 KB / 41.3 KB | 45.2M | 2.24 GB/s | 427 B |
+| .NET 10 | 4 | Serilog.Sinks.Async | 25.9 MB / 55.4 MB | 9.2M | 636.4 MB/s | 427 B |
+| .NET 10 | 4 | AsyncRing | 47.3 MB / 77.8 MB | 18.5M | 1.24 GB/s | 427 B |
+| .NET 10 | 4 | No queue | 0 B / 0 B | 67.8M | 4.61 GB/s | 427 B |
+| .NET 10 | 16 | Serilog.Sinks.Async | 134.3 MB / 337.0 MB | 7.8M | 535.6 MB/s | 427 B |
+| .NET 10 | 16 | AsyncRing | 55.4 MB / 83.3 MB | 12.0M | 827.4 MB/s | 427 B |
+| .NET 10 | 16 | No queue | 0 B / 0 B | 62.2M | 4.23 GB/s | 427 B |
+| .NET 8 | 1 | Serilog.Sinks.Async | 0 B / 0 B | 18.3M | 925.4 MB/s | 427 B |
+| .NET 8 | 1 | AsyncRing | 31.9 MB / 31.9 MB | 22.9M | 1.13 GB/s | 427 B |
+| .NET 8 | 1 | No queue | 0 B / 0 B | 39.2M | 1.94 GB/s | 427 B |
+| .NET 8 | 4 | Serilog.Sinks.Async | 19.6 MB / 48.0 MB | 10.3M | 720.6 MB/s | 427 B |
+| .NET 8 | 4 | AsyncRing | 47.8 MB / 73.2 MB | 16.2M | 1.10 GB/s | 427 B |
+| .NET 8 | 4 | No queue | 0 B / 0 B | 53.0M | 3.63 GB/s | 427 B |
+| .NET 8 | 16 | Serilog.Sinks.Async | 128.5 MB / 417.3 MB | 6.7M | 460.5 MB/s | 427 B |
+| .NET 8 | 16 | AsyncRing | 53.9 MB / 83.5 MB | 13.1M | 903.1 MB/s | 427 B |
+| .NET 8 | 16 | No queue | 0 B / 0 B | 50.7M | 3.46 GB/s | 427 B |
 
 **Overload with the default 10,000-event buffer**
 
 | Runtime | Threads | Sink | Memory in use (avg / peak) | Allocations/s | Allocated/s | Allocated/event |
 |---|---|---|---|---|---|---|
-| .NET 10 | 1 | Serilog.Sinks.Async | 41.3 KB / 60.7 KB | 17.8M | 898.5 MB/s | 427 B |
-| .NET 10 | 1 | AsyncRing | 281.0 KB / 291.6 KB | 24.0M | 1.18 GB/s | 427 B |
-| .NET 10 | 1 | No queue | 18.3 KB / 47.4 KB | 37.1M | 1.83 GB/s | 427 B |
-| .NET 10 | 4 | Serilog.Sinks.Async | 4.1 MB / 10.4 MB | 18.2M | 1.15 GB/s | 452 B |
-| .NET 10 | 4 | AsyncRing | 2.7 MB / 3.9 MB | 40.1M | 2.11 GB/s | 437 B |
-| .NET 10 | 4 | No queue | 30.9 KB / 62.6 KB | 52.8M | 3.59 GB/s | 427 B |
-| .NET 10 | 16 | Serilog.Sinks.Async | 7.0 MB / 16.1 MB | 33.8M | 1.91 GB/s | 512 B |
-| .NET 10 | 16 | AsyncRing | 3.3 MB / 3.9 MB | 33.9M | 1.65 GB/s | 440 B |
-| .NET 10 | 16 | No queue | 73.9 KB / 127.7 KB | 67.0M | 4.55 GB/s | 427 B |
-| .NET 8 | 1 | Serilog.Sinks.Async | 0 B / 0 B | 17.2M | 871.5 MB/s | 427 B |
-| .NET 8 | 1 | AsyncRing | 112.6 KB / 122.6 KB | 22.3M | 1.10 GB/s | 427 B |
-| .NET 8 | 1 | No queue | 0 B / 0 B | 39.1M | 1.92 GB/s | 426 B |
-| .NET 8 | 4 | Serilog.Sinks.Async | 4.1 MB / 10.9 MB | 17.7M | 1.15 GB/s | 447 B |
-| .NET 8 | 4 | AsyncRing | 2.8 MB / 3.9 MB | 34.6M | 1.82 GB/s | 437 B |
-| .NET 8 | 4 | No queue | 0 B / 0 B | 52.7M | 3.60 GB/s | 427 B |
-| .NET 8 | 16 | Serilog.Sinks.Async | 6.2 MB / 15.4 MB | 28.5M | 1.67 GB/s | 507 B |
-| .NET 8 | 16 | AsyncRing | 3.2 MB / 4.0 MB | 32.0M | 1.57 GB/s | 440 B |
-| .NET 8 | 16 | No queue | 0 B / 0 B | 52.3M | 3.57 GB/s | 427 B |
+| .NET 10 | 1 | Serilog.Sinks.Async | 32.4 KB / 38.6 KB | 17.5M | 894.2 MB/s | 427 B |
+| .NET 10 | 1 | AsyncRing | 280.6 KB / 286.1 KB | 23.8M | 1.18 GB/s | 427 B |
+| .NET 10 | 1 | No queue | 31.0 KB / 53.3 KB | 46.4M | 2.29 GB/s | 427 B |
+| .NET 10 | 4 | Serilog.Sinks.Async | 4.6 MB / 11.1 MB | 20.7M | 1.16 GB/s | 467 B |
+| .NET 10 | 4 | AsyncRing | 3.5 MB / 11.0 MB | 35.2M | 1.81 GB/s | 438 B |
+| .NET 10 | 4 | No queue | 38.5 KB / 87.2 KB | 52.1M | 3.56 GB/s | 427 B |
+| .NET 10 | 16 | Serilog.Sinks.Async | 6.9 MB / 18.0 MB | 33.5M | 1.89 GB/s | 511 B |
+| .NET 10 | 16 | AsyncRing | 4.8 MB / 19.0 MB | 44.4M | 2.02 GB/s | 444 B |
+| .NET 10 | 16 | No queue | 71.0 KB / 124.6 KB | 62.0M | 4.21 GB/s | 427 B |
+| .NET 8 | 1 | Serilog.Sinks.Async | 0 B / 0 B | 17.1M | 867.5 MB/s | 427 B |
+| .NET 8 | 1 | AsyncRing | 115.7 KB / 122.0 KB | 22.8M | 1.12 GB/s | 427 B |
+| .NET 8 | 1 | No queue | 0 B / 0 B | 39.2M | 1.93 GB/s | 427 B |
+| .NET 8 | 4 | Serilog.Sinks.Async | 3.8 MB / 11.8 MB | 16.8M | 1.09 GB/s | 445 B |
+| .NET 8 | 4 | AsyncRing | 2.8 MB / 3.7 MB | 35.1M | 1.80 GB/s | 438 B |
+| .NET 8 | 4 | No queue | 0 B / 0 B | 53.0M | 3.63 GB/s | 427 B |
+| .NET 8 | 16 | Serilog.Sinks.Async | 6.6 MB / 19.2 MB | 27.9M | 1.61 GB/s | 505 B |
+| .NET 8 | 16 | AsyncRing | 3.9 MB / 14.8 MB | 37.0M | 1.71 GB/s | 442 B |
+| .NET 8 | 16 | No queue | 0 B / 0 B | 52.8M | 3.60 GB/s | 427 B |
 
 </details>
 
 </details>
 
 <details>
-<summary><b>macOS</b>: AsyncRing is 1.9× faster per logging call with 16 threads</summary>
+<summary><b>macOS</b>: AsyncRing is 1.8× faster per logging call with 16 threads</summary>
 
 macOS Tahoe 26.6.2 (25G83) [Darwin 25.6.0] · Apple M1 (Virtual), 3 logical and 3 physical cores
 
@@ -333,34 +333,34 @@ macOS Tahoe 26.6.2 (25G83) [Darwin 25.6.0] · Apple M1 (Virtual), 3 logical and 
 
 | Runtime | Threads | Serilog.Sinks.Async | AsyncRing | No queue | AsyncRing is |
 |---|---|---|---|---|---|
-| .NET 10 | 1 | 442 ns | 370 ns | 186 ns | 1.2× faster |
-| .NET 10 | 4 | 2,625 ns | 1,216 ns | 481 ns | 2.2× faster |
-| .NET 10 | 16 | 15,862 ns | 8,505 ns | 2,141 ns | 1.9× faster |
-| .NET 8 | 1 | 468 ns | 402 ns | 196 ns | 1.2× faster |
-| .NET 8 | 4 | 3,311 ns | 2,209 ns | 591 ns | 1.5× faster |
-| .NET 8 | 16 | 16,967 ns | 9,866 ns | 2,017 ns | 1.7× faster |
+| .NET 10 | 1 | 376 ns | 314 ns | 178 ns | 1.2× faster |
+| .NET 10 | 4 | 2,427 ns | 1,207 ns | 475 ns | 2.0× faster |
+| .NET 10 | 16 | 11,130 ns | 6,144 ns | 1,626 ns | 1.8× faster |
+| .NET 8 | 1 | 424 ns | 466 ns | 268 ns | 1.1× slower |
+| .NET 8 | 4 | 2,185 ns | 1,158 ns | 498 ns | 1.9× faster |
+| .NET 8 | 16 | 13,362 ns | 9,450 ns | 1,788 ns | 1.4× faster |
 
 **Throughput** (events per second reaching the sink)
 
 | Runtime | Threads | Serilog.Sinks.Async | AsyncRing | No queue | AsyncRing is |
 |---|---|---|---|---|---|
-| .NET 10 | 1 | 1.5M/s | 3.4M/s | 6.3M/s | 2.3× faster |
-| .NET 10 | 4 | 1.3M/s | 2.3M/s | 7.3M/s | 1.7× faster |
-| .NET 10 | 16 | 1.0M/s | 1.7M/s | 6.0M/s | 1.8× faster |
-| .NET 8 | 1 | 2.4M/s | 2.3M/s | 4.5M/s | 1.1× slower |
-| .NET 8 | 4 | 1.1M/s | 1.9M/s | 6.4M/s | 1.8× faster |
-| .NET 8 | 16 | 0.9M/s | 1.7M/s | 5.5M/s | 1.8× faster |
+| .NET 10 | 1 | 2.4M/s | 3.1M/s | 6.3M/s | 1.3× faster |
+| .NET 10 | 4 | 1.9M/s | 5.1M/s | 10.8M/s | 2.7× faster |
+| .NET 10 | 16 | 1.6M/s | 2.5M/s | 10.7M/s | 1.6× faster |
+| .NET 8 | 1 | 2.2M/s | 3.6M/s | 5.7M/s | 1.6× faster |
+| .NET 8 | 4 | 1.9M/s | 4.5M/s | 11.7M/s | 2.4× faster |
+| .NET 8 | 16 | 1.1M/s | 2.0M/s | 11.1M/s | 1.8× faster |
 
 **Overload with the default 10,000-event buffer** (per call, and the share of events not dropped)
 
 | Runtime | Threads | Serilog.Sinks.Async | AsyncRing |
 |---|---|---|---|
-| .NET 10 | 1 | 789 ns, 78.4% delivered | 682 ns, 76.8% delivered |
-| .NET 10 | 4 | 2,876 ns, 58.7% delivered | 1,992 ns, 64.6% delivered |
-| .NET 10 | 16 | 4,497 ns, 17.9% delivered | 5,416 ns, 29.8% delivered |
-| .NET 8 | 1 | 779 ns, 81.1% delivered | 606 ns, 72.9% delivered |
-| .NET 8 | 4 | 2,930 ns, 61.3% delivered | 1,941 ns, 67.6% delivered |
-| .NET 8 | 16 | 3,680 ns, 20.5% delivered | 6,808 ns, 46.9% delivered |
+| .NET 10 | 1 | 445 ns, 81.5% delivered | 236 ns, 94.4% delivered |
+| .NET 10 | 4 | 1,539 ns, 63.6% delivered | 739 ns, 79.6% delivered |
+| .NET 10 | 16 | 3,066 ns, 17.3% delivered | 2,621 ns, 37.1% delivered |
+| .NET 8 | 1 | 514 ns, 90.9% delivered | 394 ns, 86.5% delivered |
+| .NET 8 | 4 | 1,689 ns, 77.4% delivered | 1,269 ns, 69.4% delivered |
+| .NET 8 | 16 | 3,674 ns, 22.2% delivered | 2,812 ns, 31.6% delivered |
 
 <details>
 <summary>Memory and allocations</summary>
@@ -371,70 +371,70 @@ Memory in use is the managed heap after garbage collections, above what it was b
 
 | Runtime | Threads | Sink | Memory in use (avg / peak) | Allocations/s | Allocated/s | Allocated/event |
 |---|---|---|---|---|---|---|
-| .NET 10 | 1 | Serilog.Sinks.Async | 294.7 KB / 2.6 MB | 18.2M | 921.1 MB/s | 427 B |
-| .NET 10 | 1 | AsyncRing | 32.9 MB / 39.5 MB | 21.1M | 1.08 GB/s | 427 B |
-| .NET 10 | 1 | No queue | 7.4 KB / 56.9 KB | 43.1M | 2.13 GB/s | 427 B |
-| .NET 10 | 4 | Serilog.Sinks.Async | 24.1 MB / 54.4 MB | 9.6M | 620.4 MB/s | 427 B |
-| .NET 10 | 4 | AsyncRing | 41.1 MB / 57.4 MB | 20.0M | 1.31 GB/s | 427 B |
-| .NET 10 | 4 | No queue | 129.8 KB / 217.0 KB | 49.6M | 3.31 GB/s | 427 B |
-| .NET 10 | 16 | Serilog.Sinks.Async | 133.4 MB / 379.9 MB | 6.4M | 410.8 MB/s | 427 B |
-| .NET 10 | 16 | AsyncRing | 70.2 MB / 136.4 MB | 11.7M | 766.0 MB/s | 427 B |
-| .NET 10 | 16 | No queue | 125.0 KB / 273.2 KB | 46.3M | 2.97 GB/s | 427 B |
-| .NET 8 | 1 | Serilog.Sinks.Async | 5.8 MB / 10.7 MB | 17.2M | 870.1 MB/s | 427 B |
-| .NET 8 | 1 | AsyncRing | 36.2 MB / 40.4 MB | 19.4M | 1011.2 MB/s | 427 B |
-| .NET 8 | 1 | No queue | 5.2 MB / 6.0 MB | 41.0M | 2.03 GB/s | 427 B |
-| .NET 8 | 4 | Serilog.Sinks.Async | 24.8 MB / 51.2 MB | 7.5M | 492.2 MB/s | 427 B |
-| .NET 8 | 4 | AsyncRing | 49.2 MB / 67.3 MB | 11.3M | 737.2 MB/s | 427 B |
-| .NET 8 | 4 | No queue | 5.0 MB / 5.4 MB | 42.2M | 2.69 GB/s | 427 B |
-| .NET 8 | 16 | Serilog.Sinks.Async | 50.3 MB / 106.2 MB | 5.8M | 384.4 MB/s | 427 B |
-| .NET 8 | 16 | AsyncRing | 57.5 MB / 85.2 MB | 9.8M | 661.4 MB/s | 428 B |
-| .NET 8 | 16 | No queue | 5.2 MB / 5.5 MB | 48.3M | 3.16 GB/s | 427 B |
+| .NET 10 | 1 | Serilog.Sinks.Async | 414.2 KB / 515.9 KB | 21.4M | 1.06 GB/s | 427 B |
+| .NET 10 | 1 | AsyncRing | 32.5 MB / 38.0 MB | 24.7M | 1.26 GB/s | 427 B |
+| .NET 10 | 1 | No queue | 31.8 KB / 89.0 KB | 45.2M | 2.23 GB/s | 427 B |
+| .NET 10 | 4 | Serilog.Sinks.Async | 35.9 MB / 70.0 MB | 10.1M | 671.3 MB/s | 427 B |
+| .NET 10 | 4 | AsyncRing | 45.8 MB / 65.6 MB | 20.3M | 1.32 GB/s | 427 B |
+| .NET 10 | 4 | No queue | 109.6 KB / 171.9 KB | 51.0M | 3.35 GB/s | 427 B |
+| .NET 10 | 16 | Serilog.Sinks.Async | 160.0 MB / 366.6 MB | 8.8M | 585.4 MB/s | 427 B |
+| .NET 10 | 16 | AsyncRing | 78.7 MB / 251.2 MB | 15.6M | 1.04 GB/s | 427 B |
+| .NET 10 | 16 | No queue | 113.4 KB / 254.4 KB | 58.1M | 3.91 GB/s | 427 B |
+| .NET 8 | 1 | Serilog.Sinks.Async | 5.2 MB / 7.1 MB | 18.9M | 959.7 MB/s | 427 B |
+| .NET 8 | 1 | AsyncRing | 42.6 MB / 58.8 MB | 16.8M | 872.6 MB/s | 427 B |
+| .NET 8 | 1 | No queue | 6.0 MB / 6.0 MB | 30.2M | 1.48 GB/s | 427 B |
+| .NET 8 | 4 | Serilog.Sinks.Async | 29.5 MB / 55.4 MB | 11.1M | 746.3 MB/s | 427 B |
+| .NET 8 | 4 | AsyncRing | 44.3 MB / 55.2 MB | 20.6M | 1.37 GB/s | 427 B |
+| .NET 8 | 4 | No queue | 5.4 MB / 5.4 MB | 46.6M | 3.19 GB/s | 427 B |
+| .NET 8 | 16 | Serilog.Sinks.Async | 63.8 MB / 121.2 MB | 7.2M | 488.2 MB/s | 428 B |
+| .NET 8 | 16 | AsyncRing | 60.7 MB / 88.8 MB | 10.1M | 690.6 MB/s | 428 B |
+| .NET 8 | 16 | No queue | 6.0 MB / 6.1 MB | 53.2M | 3.56 GB/s | 427 B |
 
 **Throughput**
 
 | Runtime | Threads | Sink | Memory in use (avg / peak) | Allocations/s | Allocated/s | Allocated/event |
 |---|---|---|---|---|---|---|
-| .NET 10 | 1 | Serilog.Sinks.Async | 7.4 MB / 37.2 MB | 11.7M | 592.9 MB/s | 427 B |
-| .NET 10 | 1 | AsyncRing | 32.1 MB / 33.5 MB | 27.3M | 1.35 GB/s | 427 B |
-| .NET 10 | 1 | No queue | 87.7 KB / 212.8 KB | 50.4M | 2.49 GB/s | 427 B |
-| .NET 10 | 4 | Serilog.Sinks.Async | 38.1 MB / 82.7 MB | 8.5M | 537.2 MB/s | 427 B |
-| .NET 10 | 4 | AsyncRing | 43.3 MB / 68.9 MB | 14.2M | 927.9 MB/s | 427 B |
-| .NET 10 | 4 | No queue | 117.4 KB / 231.3 KB | 46.3M | 2.91 GB/s | 427 B |
-| .NET 10 | 16 | Serilog.Sinks.Async | 129.0 MB / 327.7 MB | 6.4M | 401.1 MB/s | 427 B |
-| .NET 10 | 16 | AsyncRing | 68.4 MB / 136.1 MB | 11.3M | 708.8 MB/s | 427 B |
-| .NET 10 | 16 | No queue | 103.2 KB / 238.7 KB | 41.0M | 2.37 GB/s | 427 B |
-| .NET 8 | 1 | Serilog.Sinks.Async | 4.9 MB / 8.1 MB | 19.3M | 978.0 MB/s | 427 B |
-| .NET 8 | 1 | AsyncRing | 38.8 MB / 57.6 MB | 18.2M | 923.6 MB/s | 427 B |
-| .NET 8 | 1 | No queue | 4.5 MB / 6.1 MB | 35.9M | 1.77 GB/s | 427 B |
-| .NET 8 | 4 | Serilog.Sinks.Async | 28.8 MB / 99.7 MB | 6.6M | 431.0 MB/s | 427 B |
-| .NET 8 | 4 | AsyncRing | 44.6 MB / 58.9 MB | 12.6M | 790.9 MB/s | 427 B |
-| .NET 8 | 4 | No queue | 5.9 MB / 6.0 MB | 40.2M | 2.56 GB/s | 427 B |
-| .NET 8 | 16 | Serilog.Sinks.Async | 107.9 MB / 249.4 MB | 5.7M | 371.0 MB/s | 427 B |
-| .NET 8 | 16 | AsyncRing | 73.9 MB / 146.4 MB | 10.8M | 683.0 MB/s | 427 B |
-| .NET 8 | 16 | No queue | 6.0 MB / 6.0 MB | 36.1M | 2.18 GB/s | 427 B |
+| .NET 10 | 1 | Serilog.Sinks.Async | 4.9 MB / 25.8 MB | 19.7M | 995.8 MB/s | 427 B |
+| .NET 10 | 1 | AsyncRing | 40.8 MB / 72.1 MB | 25.3M | 1.25 GB/s | 427 B |
+| .NET 10 | 1 | No queue | 125.2 KB / 227.1 KB | 50.6M | 2.50 GB/s | 427 B |
+| .NET 10 | 4 | Serilog.Sinks.Async | 43.1 MB / 110.7 MB | 11.6M | 778.6 MB/s | 427 B |
+| .NET 10 | 4 | AsyncRing | 45.6 MB / 96.9 MB | 30.8M | 2.05 GB/s | 427 B |
+| .NET 10 | 4 | No queue | 100.8 KB / 227.3 KB | 64.6M | 4.31 GB/s | 427 B |
+| .NET 10 | 16 | Serilog.Sinks.Async | 185.7 MB / 580.3 MB | 9.6M | 647.9 MB/s | 427 B |
+| .NET 10 | 16 | AsyncRing | 71.7 MB / 158.3 MB | 15.4M | 1.01 GB/s | 427 B |
+| .NET 10 | 16 | No queue | 112.6 KB / 235.0 KB | 61.3M | 4.26 GB/s | 427 B |
+| .NET 8 | 1 | Serilog.Sinks.Async | 6.8 MB / 20.1 MB | 17.9M | 903.2 MB/s | 427 B |
+| .NET 8 | 1 | AsyncRing | 36.9 MB / 43.3 MB | 29.0M | 1.43 GB/s | 427 B |
+| .NET 8 | 1 | No queue | 4.4 MB / 6.2 MB | 46.0M | 2.27 GB/s | 427 B |
+| .NET 8 | 4 | Serilog.Sinks.Async | 35.5 MB / 107.7 MB | 11.3M | 763.1 MB/s | 427 B |
+| .NET 8 | 4 | AsyncRing | 41.9 MB / 59.0 MB | 27.0M | 1.78 GB/s | 427 B |
+| .NET 8 | 4 | No queue | 5.9 MB / 6.0 MB | 68.0M | 4.65 GB/s | 427 B |
+| .NET 8 | 16 | Serilog.Sinks.Async | 63.5 MB / 122.7 MB | 6.8M | 450.9 MB/s | 427 B |
+| .NET 8 | 16 | AsyncRing | 61.2 MB / 89.9 MB | 12.0M | 821.6 MB/s | 428 B |
+| .NET 8 | 16 | No queue | 6.0 MB / 6.0 MB | 64.2M | 4.43 GB/s | 427 B |
 
 **Overload with the default 10,000-event buffer**
 
 | Runtime | Threads | Sink | Memory in use (avg / peak) | Allocations/s | Allocated/s | Allocated/event |
 |---|---|---|---|---|---|---|
-| .NET 10 | 1 | Serilog.Sinks.Async | 4.4 MB / 12.2 MB | 11.0M | 556.3 MB/s | 460 B |
-| .NET 10 | 1 | AsyncRing | 3.0 MB / 7.7 MB | 12.2M | 610.3 MB/s | 436 B |
-| .NET 10 | 1 | No queue | 15.1 KB / 24.4 KB | 27.1M | 1.34 GB/s | 427 B |
-| .NET 10 | 4 | Serilog.Sinks.Async | 7.1 MB / 19.1 MB | 11.1M | 631.4 MB/s | 476 B |
-| .NET 10 | 4 | AsyncRing | 7.7 MB / 14.9 MB | 16.6M | 842.2 MB/s | 440 B |
-| .NET 10 | 4 | No queue | 40.8 KB / 93.6 KB | 35.3M | 2.20 GB/s | 427 B |
-| .NET 10 | 16 | Serilog.Sinks.Async | 7.6 MB / 18.8 MB | 30.6M | 1.72 GB/s | 518 B |
-| .NET 10 | 16 | AsyncRing | 9.3 MB / 18.6 MB | 29.8M | 1.24 GB/s | 449 B |
-| .NET 10 | 16 | No queue | 110.4 KB / 236.0 KB | 45.3M | 2.93 GB/s | 427 B |
-| .NET 8 | 1 | Serilog.Sinks.Async | 7.0 MB / 16.5 MB | 11.0M | 557.1 MB/s | 455 B |
-| .NET 8 | 1 | AsyncRing | 7.3 MB / 12.8 MB | 13.8M | 687.6 MB/s | 437 B |
-| .NET 8 | 1 | No queue | 3.7 MB / 5.5 MB | 15.7M | 794.9 MB/s | 427 B |
-| .NET 8 | 4 | Serilog.Sinks.Async | 9.8 MB / 18.3 MB | 10.4M | 609.7 MB/s | 468 B |
-| .NET 8 | 4 | AsyncRing | 10.9 MB / 20.6 MB | 16.8M | 861.9 MB/s | 439 B |
-| .NET 8 | 4 | No queue | 4.8 MB / 5.5 MB | 25.0M | 1.51 GB/s | 427 B |
-| .NET 8 | 16 | Serilog.Sinks.Async | 12.3 MB / 25.7 MB | 37.0M | 2.10 GB/s | 519 B |
-| .NET 8 | 16 | AsyncRing | 13.9 MB / 24.0 MB | 21.5M | 992.2 MB/s | 443 B |
-| .NET 8 | 16 | No queue | 5.3 MB / 5.5 MB | 29.4M | 1.85 GB/s | 427 B |
+| .NET 10 | 1 | Serilog.Sinks.Async | 3.4 MB / 9.9 MB | 19.3M | 980.8 MB/s | 458 B |
+| .NET 10 | 1 | AsyncRing | 1.6 MB / 9.8 MB | 34.3M | 1.69 GB/s | 430 B |
+| .NET 10 | 1 | No queue | 15.7 KB / 19.6 KB | 55.5M | 2.75 GB/s | 427 B |
+| .NET 10 | 4 | Serilog.Sinks.Async | 7.5 MB / 19.2 MB | 19.9M | 1.15 GB/s | 477 B |
+| .NET 10 | 4 | AsyncRing | 5.2 MB / 16.8 MB | 39.0M | 2.19 GB/s | 434 B |
+| .NET 10 | 4 | No queue | 49.2 KB / 115.8 KB | 64.5M | 4.22 GB/s | 427 B |
+| .NET 10 | 16 | Serilog.Sinks.Async | 6.8 MB / 17.5 MB | 43.8M | 2.52 GB/s | 519 B |
+| .NET 10 | 16 | AsyncRing | 6.7 MB / 19.4 MB | 59.1M | 2.54 GB/s | 447 B |
+| .NET 10 | 16 | No queue | 128.6 KB / 253.5 KB | 61.8M | 3.94 GB/s | 427 B |
+| .NET 8 | 1 | Serilog.Sinks.Async | 4.7 MB / 11.1 MB | 16.2M | 820.8 MB/s | 442 B |
+| .NET 8 | 1 | AsyncRing | 5.4 MB / 13.4 MB | 20.9M | 1.02 GB/s | 433 B |
+| .NET 8 | 1 | No queue | 2.8 MB / 6.0 MB | 35.0M | 1.72 GB/s | 427 B |
+| .NET 8 | 4 | Serilog.Sinks.Async | 9.7 MB / 18.8 MB | 16.3M | 1.01 GB/s | 460 B |
+| .NET 8 | 4 | AsyncRing | 11.4 MB / 18.8 MB | 24.7M | 1.28 GB/s | 436 B |
+| .NET 8 | 4 | No queue | 6.0 MB / 6.0 MB | 55.3M | 3.67 GB/s | 427 B |
+| .NET 8 | 16 | Serilog.Sinks.Async | 12.6 MB / 21.0 MB | 36.9M | 2.10 GB/s | 517 B |
+| .NET 8 | 16 | AsyncRing | 12.3 MB / 20.2 MB | 57.3M | 2.39 GB/s | 451 B |
+| .NET 8 | 16 | No queue | 5.9 MB / 6.1 MB | 60.1M | 4.00 GB/s | 427 B |
 
 </details>
 
