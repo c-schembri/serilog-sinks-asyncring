@@ -47,11 +47,14 @@ jobs:
         with:
           user: ${{ vars.NUGET_USER }}
 
+      # One file at a time: dotnet nuget push doesn't resolve a "folder/*.nupkg" pattern on Windows. The
+      # .snupkg next to each package goes to nuget.org's symbol server automatically.
       - name: Push to nuget.org
         shell: bash
-        run: >
-          dotnet nuget push "artifacts/*.nupkg" --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
-          --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: |
+          for package in artifacts/*.nupkg; do
+            dotnet nuget push "$package" --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"               --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done
 
       - name: Create GitHub release
         shell: bash
