@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Serilog.Sinks.AsyncRing\Serilog.Sinks.AsyncRing.csproj" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
     <!-- The original, under an alias so both can be used side by side. -->
     <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" Aliases="upstream" />
   </ItemGroup>

@@ -7,28 +7,41 @@ it much faster when many threads log at once.
 
 ## Performance
 
-Nanoseconds per logging call (lower is better). Threads log as fast as they can into a sink that does nothing,
-so this measures the logging pipeline plus the hand-off to the background thread. Measured on a Ryzen 9 9900X
-(12 cores, 24 threads) with .NET 8, best of 5 runs. The 16-thread figures are the range over 4 runs.
+Measured with the [BenchmarkDotNet](https://benchmarkdotnet.org) suite in `test/Serilog.Sinks.AsyncRing.Benchmarks`,
+on a Ryzen 9 9900X (12 cores, 24 threads), Windows 11, .NET 8. Threads log as fast as they can into a sink that
+only counts events, so these measure the logging pipeline and the hand-off to the background thread.
 
-| Logging threads | No queue (baseline) | Serilog.Sinks.Async | AsyncRing |
+**Cost of a logging call** (ns per call, as seen by each logging thread; nothing dropped):
+
+| Logging threads | Serilog.Sinks.Async | AsyncRing | No queue |
 |---|---|---|---|
-| 1 | 115 | 262 | 182 |
-| 4 | 158 | 1,845 | 274 |
-| 16 | 600–790 | 10,800–11,500 | 1,750–2,100 |
+| 1 | 218 | 194 | 193 |
+| 4 | 1,815 | 497 | 203 |
+| 16 | 10,729 | 794 | 567 |
 
-With the default 10,000-event buffer, Serilog.Sinks.Async's background thread couldn't keep up and dropped most
-events. AsyncRing delivered all of them:
+At 16 threads, 14% of Serilog.Sinks.Async's logging calls ran into a lock another thread was holding; for
+AsyncRing it was 0.03%.
+
+**Throughput** (events per second reaching the wrapped sink):
+
+| Logging threads | Serilog.Sinks.Async | AsyncRing | No queue |
+|---|---|---|---|
+| 1 | 4.2 million | 5.3 million | 8.4 million |
+| 4 | 2.2 million | 14.0 million | 27.3 million |
+| 16 | 1.2 million | 19.1 million | 27.8 million |
+
+**Overload with the default 10,000-event buffer** (ns per call, and the share of events that weren't dropped):
 
 | Logging threads | Serilog.Sinks.Async | AsyncRing |
 |---|---|---|
-| 4 | 859 ns per call, 42% of events delivered | 285 ns per call, 100% delivered |
-| 16 | 2,043 ns per call, 6% of events delivered | 1,244 ns per call, 100% delivered |
+| 1 | 327 ns, 100% delivered | 236 ns, 100% delivered |
+| 4 | 931 ns, 61% delivered | 345 ns, 100% delivered |
+| 16 | 2,151 ns, 7.5% delivered | 737 ns, 100% delivered |
 
-These are extremes. A real sink (a file, the console) is much slower than the do-nothing sink used here, so
-under sustained overload any async wrapper eventually fills its buffer and then drops or blocks. The numbers show
-how little each logging call costs, and how much better the background thread keeps up when many threads log at
-once.
+These are extremes. A real sink (a file, the console) is much slower than a sink that only counts, so under
+sustained overload any async wrapper eventually fills its buffer and then drops or blocks. The numbers show how
+little each logging call costs, and how much better the background thread keeps up when many threads log at
+once. The single-thread figures vary by about ±50 ns from run to run.
 
 ## Getting started
 
@@ -175,11 +188,22 @@ The tests include Serilog.Sinks.Async's own test suite, run unchanged against th
 check that the public API is identical to Serilog.Sinks.Async 2.1.0's, and stress the ring buffer: many threads,
 tiny buffers, constant wrap-around, and disposal while logging.
 
-To compare performance with Serilog.Sinks.Async:
+The benchmarks use [BenchmarkDotNet](https://benchmarkdotnet.org) and compare this package with Serilog.Sinks.Async
+2.1.0 and with logging straight to the sink (no queue):
 
 ```sh
-dotnet run -c Release --project test/Serilog.Sinks.AsyncRing.Benchmarks
+dotnet run -c Release --project test/Serilog.Sinks.AsyncRing.Benchmarks -- --filter '*'          # everything
+dotnet run -c Release --project test/Serilog.Sinks.AsyncRing.Benchmarks -- --filter '*LogCall*'  # one class
 ```
+
+- **`LogCallBenchmarks`:** what a logging call costs the thread making it, while 1, 4 or 16 threads log at once.
+  The buffer is big enough that nothing is dropped.
+- **`ThroughputBenchmarks`:** how long it takes for a batch of events to be logged and to reach the wrapped sink.
+- **`OverloadBenchmarks`:** threads logging flat out into the default 10,000-event buffer. The `Delivered` column
+  shows the share of events that weren't dropped.
+
+Each benchmark case runs in its own process, and the buffer is drained between iterations. Results are written
+to `BenchmarkDotNet.Artifacts/results` in the directory you run it from.
 
 ## License
 
