@@ -74,6 +74,8 @@ jobs:
         env:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
+      # No "[skip ci]" in the message: pushes made with the workflow's token don't trigger other workflows
+      # anyway, and the marker would stop a release tag on this commit from running the release workflow.
       - name: Commit
         run: |
           if git diff --quiet README.md; then
@@ -82,6 +84,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "Update CI benchmark results [skip ci]"
+          git commit -am "Update CI benchmark results"
           git pull --rebase origin main
           git push origin HEAD:main
